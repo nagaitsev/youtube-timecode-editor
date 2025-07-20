@@ -33,7 +33,8 @@
         .container-inner {
             max-width: 900px; /* Максимальная ширина, как у основного контейнера */
             margin: 0 auto; /* Центрирование */
-            padding: 0 25px; /* Горизонтальные отступы */
+            /* Уменьшаем горизонтальный padding, чтобы видео занимало больше места */
+            padding: 0 15px;
         }
 
         /* Основная область контента, которая будет прокручиваться */
@@ -314,7 +315,8 @@
                 padding-right: 15px;
             }
             .container-inner {
-                padding: 0; /* Убираем внутренний padding, так как он уже есть у .fixed-header */
+                /* На мобильных устройствах убираем padding для максимальной ширины видео */
+                padding: 0;
             }
             h1 {
                 font-size: 1.8em;
@@ -753,7 +755,8 @@
             const lines = pastedText.split('\n');
             const newTimings = [];
             // Регулярное выражение для парсинга времени MM:SS в начале строки
-            const timeRegex = /^(\d{1,2}):(\d{2})/;
+            // Оно теперь ищет время, за которым может следовать пробел и любой текст
+            const timeRegex = /^(\d{1,2}):(\d{2})\s*(.*)$/;
             let parsedCount = 0;
 
             lines.forEach(line => {
@@ -766,15 +769,12 @@
                     const seconds = parseInt(match[2], 10);
                     const totalSeconds = minutes * 60 + seconds;
 
-                    let note = '';
-                    // Берем всю строку после времени и обрезаем пробелы
-                    const afterTimePart = trimmedLine.substring(match[0].length).trim();
-
-                    // Проверяем, начинается ли заметка с " - " (старый формат)
-                    if (afterTimePart.startsWith('- ')) {
-                        note = afterTimePart.substring(2).trim(); // Удаляем " - "
+                    let note = match[3] || ''; // Вся остальная часть строки после времени
+                    // Если заметка начинается с " - ", удаляем этот разделитель
+                    if (note.startsWith('- ')) {
+                        note = note.substring(2).trim();
                     } else {
-                        note = afterTimePart; // В новом формате просто берем остаток
+                        note = note.trim(); // Просто обрезаем пробелы, если нет " - "
                     }
 
                     newTimings.push({
