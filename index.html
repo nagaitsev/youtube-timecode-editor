@@ -122,6 +122,49 @@
             transform: translateY(0);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
+        /* Стили для секции вставки таймингов */
+        .paste-section {
+            margin-top: 30px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f0f8ff;
+            border: 1px solid #cce7ff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .paste-section h3 {
+            margin-top: 0;
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .paste-section textarea {
+            width: calc(100% - 24px); /* Учитываем padding */
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            font-size: 15px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        .paste-section button {
+            width: 100%;
+            padding: 12px;
+            background-color: #6c757d; /* Серый цвет для кнопки вставки */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .paste-section button:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+        }
+
         /* Стили для списка таймингов */
         #timingsList {
             background-color: #e9ecef;
@@ -222,6 +265,9 @@
             .timing-item textarea {
                 margin-left: 0;
             }
+            .paste-section textarea {
+                width: 100%; /* На мобильных устройствах textarea занимает всю ширину */
+            }
         }
     </style>
 </head>
@@ -244,6 +290,13 @@
             <button id="addTimingBtn" onclick="addCurrentTime()" disabled>Добавить тайминг</button>
             <button onclick="copyTimings()">Копировать тайминги</button>
             <button onclick="clearTimings()">Очистить тайминги</button>
+        </div>
+
+        <!-- Новая секция для вставки таймингов -->
+        <div class="paste-section">
+            <h3>Вставить ранее скопированные тайминги</h3>
+            <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 - Моя заметка"></textarea>
+            <button onclick="pasteTimings()">Вставить тайминги</button>
         </div>
 
         <h3>Ваши тайминги:</h3>
@@ -269,14 +322,8 @@
         const timings = []; // Массив для хранения объектов таймингов
         let addTimingButton; // Ссылка на кнопку "Добавить тайминг"
 
-        // ВАЖНО: Замените это на ваш реальный домен GitHub Pages.
-        // Например, если ваш URL: https://USERNAME.github.io/REPOSITORY_NAME/
-        // То origin должен быть: https://USERNAME.github.io
-        // Пример: const GITHUB_PAGES_ORIGIN = "https://myusername.github.io";
-        // Или, если вы используете репозиторий: https://myusername.github.io/my-repo-name
-        // То origin все равно будет: https://myusername.github.io
-        const GITHUB_PAGES_ORIGIN = window.location.origin; // Автоматически определяет текущий домен
-
+        // Автоматически определяет текущий домен для параметра 'origin' YouTube API
+        const GITHUB_PAGES_ORIGIN = window.location.origin;
 
         /**
          * Загружает YouTube видео на страницу по введенному URL.
@@ -510,6 +557,66 @@
                 timings.length = 0;
             }
             renderTimings(); // Отображаем загруженные (или пустые) тайминги
+        }
+
+        /**
+         * Вставляет тайминги из текстового поля, парсит их и добавляет к существующим.
+         */
+        function pasteTimings() {
+            const pastedText = document.getElementById('pasteTimingsTextarea').value;
+            if (!pastedText.trim()) {
+                alert('Пожалуйста, вставьте тайминги в текстовое поле.');
+                return;
+            }
+
+            const lines = pastedText.split('\n');
+            const newTimings = [];
+            // Регулярное выражение для парсинга времени MM:SS в начале строки
+            const timeRegex = /^(\d{1,2}):(\d{2})/;
+            let parsedCount = 0;
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return; // Пропускаем пустые строки
+
+                const match = trimmedLine.match(timeRegex);
+                if (match) {
+                    const minutes = parseInt(match[1], 10);
+                    const seconds = parseInt(match[2], 10);
+                    const totalSeconds = minutes * 60 + seconds;
+
+                    let note = '';
+                    // Ищем разделитель " - " для заметки
+                    const noteStartIndex = trimmedLine.indexOf(' - ');
+                    if (noteStartIndex !== -1) {
+                        note = trimmedLine.substring(noteStartIndex + 3).trim();
+                    }
+
+                    newTimings.push({
+                        time: totalSeconds,
+                        formatted: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+                        text: note
+                    });
+                    parsedCount++;
+                } else {
+                    console.warn(`Не удалось распознать тайминг в строке: "${trimmedLine}"`);
+                    // Можно добавить оповещение пользователю о нераспознанных строках
+                }
+            });
+
+            if (newTimings.length > 0) {
+                // Добавляем новые тайминги к существующим
+                timings.push(...newTimings);
+                // Сортируем все тайминги по времени, чтобы они были в правильном порядке
+                timings.sort((a, b) => a.time - b.time);
+
+                renderTimings(); // Обновляем отображение
+                saveTimings(); // Сохраняем обновленный список
+                document.getElementById('pasteTimingsTextarea').value = ''; // Очищаем поле ввода
+                alert(`Успешно добавлено ${parsedCount} таймингов.`);
+            } else {
+                alert('Не удалось распознать ни одного тайминга из вставленного текста. Убедитесь, что формат "ММ:СС - Ваша заметка" или просто "ММ:СС".');
+            }
         }
 
         // Инициализация при загрузке страницы: загружаем тайминги и отображаем их
