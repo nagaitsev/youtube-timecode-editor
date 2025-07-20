@@ -5,44 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тайминги для YouTube видео</title>
     <style>
-        /* Основные стили для тела страницы */
+        /* Общие стили для всего документа */
         body {
-            font-family: 'Inter', Arial, sans-serif; /* Используем Inter, если доступен */
-            margin: 20px;
+            margin: 0; /* Убираем стандартные отступы body */
+            padding-top: 0; /* Этот отступ будет установлен JavaScript для компенсации фиксированного заголовка */
             background-color: #f4f4f4;
             color: #333;
+            font-family: 'Inter', Arial, sans-serif; /* Используем Inter, если доступен */
             line-height: 1.6;
+            overflow-x: hidden; /* Предотвращаем горизонтальную прокрутку */
         }
-        /* Контейнер для центрирования и стилизации содержимого */
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 12px; /* Более скругленные углы */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Увеличенная тень */
+
+        /* Фиксированный заголовок, который будет оставаться на месте при прокрутке */
+        .fixed-header {
+            position: fixed; /* Фиксируем элемент на экране */
+            top: 0; /* Прикрепляем к верхней части экрана */
+            left: 0;
+            width: 100%; /* Занимает всю ширину */
+            background-color: #fff; /* Белый фон, чтобы перекрывать прокручиваемый контент */
+            z-index: 100; /* Гарантируем, что он находится поверх других элементов */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Красивая тень */
+            padding-top: 25px; /* Внутренний отступ сверху */
+            padding-bottom: 25px; /* Внутренний отступ снизу */
         }
+
+        /* Внутренний контейнер для центрирования содержимого внутри фиксированного заголовка и основного контента */
+        .container-inner {
+            max-width: 900px; /* Максимальная ширина, как у основного контейнера */
+            margin: 0 auto; /* Центрирование */
+            padding: 0 25px; /* Горизонтальные отступы */
+        }
+
+        /* Основная область контента, которая будет прокручиваться */
+        .main-content {
+            /* padding-top будет установлен JavaScript, чтобы содержимое не пряталось под фиксированным заголовком */
+        }
+
         /* Заголовок страницы */
         h1 {
             color: #0056b3;
             text-align: center;
+            margin-top: 0; /* Убираем верхний отступ, так как он уже есть у .fixed-header */
             margin-bottom: 30px;
             font-size: 2.2em;
             font-weight: bold;
         }
+
         /* Секция ввода URL видео */
         .input-section {
             display: flex;
             margin-bottom: 25px;
-            gap: 10px; /* Промежуток между элементами */
-            flex-wrap: wrap; /* Для адаптивности на маленьких экранах */
+            gap: 10px;
+            flex-wrap: wrap;
         }
-        /* Стили для поля ввода URL */
         .input-section input[type="text"] {
-            flex-grow: 1; /* Поле занимает все доступное пространство */
+            flex-grow: 1;
             padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 8px; /* Скругленные углы */
+            border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
@@ -51,18 +71,17 @@
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
             outline: none;
         }
-        /* Стили для кнопки загрузки видео */
         .input-section button {
             padding: 12px 20px;
             background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 8px; /* Скругленные углы */
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
             transition: background-color 0.2s ease, transform 0.1s ease;
-            white-space: nowrap; /* Предотвращает перенос текста кнопки */
+            white-space: nowrap;
         }
         .input-section button:hover {
             background-color: #0056b3;
@@ -71,10 +90,11 @@
         .input-section button:active {
             transform: translateY(0);
         }
+
         /* Контейнер для YouTube видеоплеера */
         .video-container {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio для видео */
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
             height: 0;
             overflow: hidden;
             background-color: #000;
@@ -82,7 +102,6 @@
             border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
-        /* Стили для iframe YouTube плеера */
         .video-container iframe {
             position: absolute;
             top: 0;
@@ -92,21 +111,21 @@
             border: 0;
             border-radius: 10px;
         }
+
         /* Секция кнопок управления таймингами */
         .controls {
             display: flex;
             justify-content: center;
             margin-bottom: 30px;
             gap: 15px;
-            flex-wrap: wrap; /* Для адаптивности */
+            flex-wrap: wrap;
         }
-        /* Стили для кнопок управления */
         .controls button {
             padding: 14px 25px;
             background-color: #28a745;
             color: white;
             border: none;
-            border-radius: 8px; /* Скругленные углы */
+            border-radius: 8px;
             cursor: pointer;
             font-size: 17px;
             font-weight: bold;
@@ -122,7 +141,8 @@
             transform: translateY(0);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
-        /* Стили для секции вставки таймингов */
+
+        /* Секция для вставки таймингов */
         .paste-section {
             margin-top: 30px;
             margin-bottom: 30px;
@@ -139,7 +159,7 @@
             margin-bottom: 15px;
         }
         .paste-section textarea {
-            width: calc(100% - 24px); /* Учитываем padding */
+            width: calc(100% - 24px);
             min-height: 80px;
             padding: 10px;
             border: 1px solid #b3d9ff;
@@ -151,7 +171,7 @@
         .paste-section button {
             width: 100%;
             padding: 12px;
-            background-color: #6c757d; /* Серый цвет для кнопки вставки */
+            background-color: #6c757d;
             color: white;
             border: none;
             border-radius: 8px;
@@ -170,48 +190,45 @@
             background-color: #e9ecef;
             border: 1px solid #ddd;
             padding: 15px;
-            min-height: 120px; /* Минимальная высота для отображения */
+            min-height: 120px;
             border-radius: 8px;
             line-height: 1.6;
-            white-space: pre-wrap; /* Сохраняет переносы строк */
-            word-wrap: break-word; /* Переносит длинные слова */
+            white-space: pre-wrap;
+            word-wrap: break-word;
             max-height: 400px; /* Ограничиваем высоту списка */
             overflow-y: auto; /* Добавляем прокрутку, если таймингов много */
         }
-        /* Стили для отдельного элемента тайминга (ссылка + текстовое поле) */
         .timing-item {
             display: flex;
-            align-items: flex-start; /* Выравнивание по верху */
+            align-items: flex-start;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 1px dashed #ccc; /* Разделитель между таймингами */
+            border-bottom: 1px dashed #ccc;
         }
         .timing-item:last-child {
-            border-bottom: none; /* Убираем разделитель для последнего элемента */
+            border-bottom: none;
         }
-        /* Стили для ссылок таймингов */
         .timing-item a {
             color: #007bff;
             text-decoration: none;
             font-weight: bold;
-            min-width: 60px; /* Минимальная ширина для времени */
-            flex-shrink: 0; /* Не сжимать */
-            padding-top: 5px; /* Выравнивание с текстовым полем */
+            min-width: 60px;
+            flex-shrink: 0;
+            padding-top: 5px;
         }
         .timing-item a:hover {
             text-decoration: underline;
         }
-        /* Стили для текстового поля заметки */
         .timing-item textarea {
-            flex-grow: 1; /* Занимает оставшееся пространство */
+            flex-grow: 1;
             margin-left: 15px;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 15px;
-            resize: vertical; /* Разрешить изменение размера только по вертикали */
-            min-height: 40px; /* Минимальная высота текстового поля */
-            max-height: 150px; /* Максимальная высота текстового поля */
+            resize: vertical;
+            min-height: 40px;
+            max-height: 150px;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
@@ -220,6 +237,7 @@
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
             outline: none;
         }
+
         /* Информационный текст */
         .info-text {
             text-align: center;
@@ -234,9 +252,12 @@
 
         /* Медиа-запросы для адаптивности */
         @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                padding: 15px;
+            .fixed-header {
+                padding-left: 15px; /* Уменьшаем горизонтальный отступ для мобильных */
+                padding-right: 15px;
+            }
+            .container-inner {
+                padding: 0; /* Убираем внутренний padding, так как он уже есть у .fixed-header */
             }
             h1 {
                 font-size: 1.8em;
@@ -266,54 +287,59 @@
                 margin-left: 0;
             }
             .paste-section textarea {
-                width: 100%; /* На мобильных устройствах textarea занимает всю ширину */
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Тайминги для YouTube видео</h1>
+    <!-- Фиксированный заголовок -->
+    <div class="fixed-header">
+        <div class="container-inner">
+            <h1>Тайминги для YouTube видео</h1>
 
-        <div class="input-section">
-            <input type="text" id="youtubeUrl" placeholder="Вставьте ссылку на YouTube видео здесь">
-            <button onclick="loadVideo()">Загрузить видео</button>
-        </div>
+            <div class="input-section">
+                <input type="text" id="youtubeUrl" placeholder="Вставьте ссылку на YouTube видео здесь">
+                <button onclick="loadVideo()">Загрузить видео</button>
+            </div>
 
-        <div class="video-container">
-            <!-- Iframe для встраивания YouTube видео -->
-            <iframe id="youtubePlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        </div>
+            <div class="video-container">
+                <iframe id="youtubePlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            </div>
 
-        <div class="controls">
-            <!-- Кнопка "Добавить тайминг" изначально отключена -->
-            <button id="addTimingBtn" onclick="addCurrentTime()" disabled>Добавить тайминг</button>
-            <button onclick="copyTimings()">Копировать тайминги</button>
-            <button onclick="clearTimings()">Очистить тайминги</button>
+            <div class="controls">
+                <button id="addTimingBtn" onclick="addCurrentTime()" disabled>Добавить тайминг</button>
+                <button onclick="copyTimings()">Копировать тайминги</button>
+                <button onclick="clearTimings()">Очистить тайминги</button>
+            </div>
         </div>
+    </div>
 
-        <!-- Новая секция для вставки таймингов -->
-        <div class="paste-section">
-            <h3>Вставить ранее скопированные тайминги</h3>
-            <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 - Моя заметка"></textarea>
-            <button onclick="pasteTimings()">Вставить тайминги</button>
-        </div>
+    <!-- Основной прокручиваемый контент -->
+    <div class="main-content">
+        <div class="container-inner">
+            <div class="paste-section">
+                <h3>Вставить ранее скопированные тайминги</h3>
+                <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 - Моя заметка"></textarea>
+                <button onclick="pasteTimings()">Вставить тайминги</button>
+            </div>
 
-        <h3>Ваши тайминги:</h3>
-        <div id="timingsList">
-            Пока здесь нет таймингов. Добавьте видео и нажмите "Добавить тайминг".
+            <h3>Ваши тайминги:</h3>
+            <div id="timingsList">
+                Пока здесь нет таймингов. Добавьте видео и нажмите "Добавить тайминг".
+            </div>
+            <p class="info-text">
+                * Нажмите на тайм-код, чтобы перейти к этому моменту в видео.
+                <br>
+                * Ваши тайминги автоматически сохраняются в браузере.
+                <br>
+                * Для корректной работы YouTube API (чтобы видео показывалось и можно было добавлять тайминги),
+                страницу нужно открыть через локальный веб-сервер или на настоящем сервере.
+                Простое открытие файла в браузере может работать некорректно из-за ограничений безопасности браузеров.
+                <br>
+                * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ` или короткая `https://youtu.be/dQw4w9WgXcQ`).
+            </p>
         </div>
-        <p class="info-text">
-            * Нажмите на тайм-код, чтобы перейти к этому моменту в видео.
-            <br>
-            * Ваши тайминги автоматически сохраняются в браузере.
-            <br>
-            * Для корректной работы YouTube API (чтобы видео показывалось и можно было добавлять тайминги),
-            страницу нужно открыть через локальный веб-сервер или на настоящем сервере.
-            Простое открытие файла в браузере может работать некорректно из-за ограничений безопасности браузеров.
-            <br>
-            * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ` или короткая `https://youtu.be/dQw4w9WgXcQ`).
-        </p>
     </div>
 
     <script>
@@ -324,6 +350,18 @@
 
         // Автоматически определяет текущий домен для параметра 'origin' YouTube API
         const GITHUB_PAGES_ORIGIN = window.location.origin;
+
+        /**
+         * Функция для динамической настройки отступа основного контента
+         * для компенсации высоты фиксированного заголовка.
+         */
+        function adjustContentPadding() {
+            const fixedHeader = document.querySelector('.fixed-header');
+            const mainContent = document.querySelector('.main-content');
+            if (fixedHeader && mainContent) {
+                mainContent.style.paddingTop = fixedHeader.offsetHeight + 'px';
+            }
+        }
 
         /**
          * Загружает YouTube видео на страницу по введенному URL.
@@ -628,7 +666,11 @@
             if (addTimingButton) {
                 addTimingButton.disabled = true;
             }
+            adjustContentPadding(); // Вызываем настройку отступа при загрузке
         });
+
+        // Также настраиваем отступ при изменении размера окна (для адаптивности)
+        window.addEventListener('resize', adjustContentPadding);
     </script>
 </body>
 </html>
