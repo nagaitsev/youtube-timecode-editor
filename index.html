@@ -204,38 +204,95 @@
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 1px dashed #ccc;
+            gap: 10px; /* Промежуток между элементами тайминга */
         }
         .timing-item:last-child {
             border-bottom: none;
         }
-        .timing-item a {
+
+        /* Общие стили для кнопок внутри timing-item */
+        .timing-item button {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            white-space: nowrap; /* Предотвращает перенос текста кнопки */
+        }
+
+        /* Стили для ссылки времени (для перехода по видео) */
+        .timing-seek-link {
             color: #007bff;
             text-decoration: none;
             font-weight: bold;
-            min-width: 60px;
-            flex-shrink: 0;
-            padding-top: 5px;
+            min-width: 60px; /* Минимальная ширина для времени */
+            flex-shrink: 0; /* Не сжимать */
+            padding-top: 5px; /* Выравнивание с текстовым полем */
+            display: inline-block; /* По умолчанию отображается */
         }
-        .timing-item a:hover {
+        .timing-seek-link:hover {
             text-decoration: underline;
         }
-        .timing-item textarea {
-            flex-grow: 1;
-            margin-left: 15px;
+
+        /* Стили для поля ввода времени (для редактирования) */
+        .timing-time-input {
+            width: 60px; /* Фиксированная ширина для поля времени */
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+            text-align: center;
+            flex-shrink: 0;
+            display: none; /* По умолчанию скрыто */
+        }
+        .timing-time-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+
+        /* Стили для кнопки редактирования */
+        .edit-timing-btn {
+            background-color: #ffc107; /* Желтый цвет */
+            color: #333;
+            border: none;
+            margin-left: 5px; /* Отступ от времени */
+            flex-shrink: 0;
+        }
+        .edit-timing-btn:hover {
+            background-color: #e0a800;
+        }
+
+        /* Стили для текстового поля заметки */
+        .timing-note-textarea {
+            flex-grow: 1; /* Занимает оставшееся пространство */
+            margin-left: 15px; /* Отступ от кнопок времени */
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 15px;
-            resize: vertical;
-            min-height: 40px;
-            max-height: 150px;
+            resize: vertical; /* Разрешить изменение размера только по вертикали */
+            min-height: 40px; /* Минимальная высота текстового поля */
+            max-height: 150px; /* Максимальная высота текстового поля */
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        .timing-item textarea:focus {
+        .timing-note-textarea:focus {
             border-color: #007bff;
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
             outline: none;
+        }
+
+        /* Стили для кнопки удаления */
+        .delete-timing-btn {
+            background-color: #dc3545; /* Красный цвет */
+            color: white;
+            border: none;
+            margin-left: 10px; /* Отступ от заметки */
+            flex-shrink: 0;
+        }
+        .delete-timing-btn:hover {
+            background-color: #c82333;
         }
 
         /* Информационный текст */
@@ -279,11 +336,22 @@
             .timing-item {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 5px; /* Уменьшаем зазор на мобильных */
             }
-            .timing-item a {
-                margin-bottom: 5px;
+            .timing-item a, .timing-item input, .timing-item button {
+                margin-left: 0; /* Убираем горизонтальные отступы для кнопок и полей */
+                margin-right: 0;
             }
-            .timing-item textarea {
+            .timing-seek-link, .timing-time-input {
+                width: 100%; /* Время занимает всю ширину */
+                text-align: left;
+            }
+            .edit-timing-btn, .delete-timing-btn {
+                width: auto; /* Кнопки по ширине содержимого */
+                margin-left: 0;
+                margin-right: 5px;
+            }
+            .timing-note-textarea {
                 margin-left: 0;
             }
             .paste-section textarea {
@@ -320,7 +388,7 @@
         <div class="container-inner">
             <div class="paste-section">
                 <h3>Вставить ранее скопированные тайминги</h3>
-                <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 - Моя заметка"></textarea>
+                <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 Моя заметка"></textarea>
                 <button onclick="pasteTimings()">Вставить тайминги</button>
             </div>
 
@@ -499,40 +567,114 @@
                 const div = document.createElement('div'); // Используем div для группировки ссылки и текстового поля
                 div.className = 'timing-item'; // Добавляем класс для стилизации
 
-                const link = document.createElement('a'); // Создаем ссылку
-                link.href = "#"; // Устанавливаем href, чтобы ссылка была кликабельной, но не перезагружала страницу
-                link.textContent = entry.formatted; // Текст ссылки - отформатированное время
-                link.onclick = (e) => {
-                    e.preventDefault(); // Предотвращаем стандартное действие ссылки (переход)
+                // Ссылка для перехода по видео
+                const seekLink = document.createElement('a');
+                seekLink.href = "#";
+                seekLink.textContent = entry.formatted;
+                seekLink.className = 'timing-seek-link';
+                seekLink.onclick = (e) => {
+                    e.preventDefault();
                     if (player && player.seekTo) {
-                        // Перематываем видео к указанному времени (true означает, что воспроизведение начнется сразу)
                         player.seekTo(entry.time, true);
                     }
                 };
 
-                const textarea = document.createElement('textarea'); // Создаем текстовое поле
-                textarea.value = entry.text; // Устанавливаем текущий текст заметки
-                textarea.rows = 2; // Начальное количество строк
+                // Поле ввода для редактирования времени
+                const timeInput = document.createElement('input');
+                timeInput.type = 'text';
+                timeInput.value = entry.formatted;
+                timeInput.className = 'timing-time-input';
+                timeInput.readOnly = true; // Изначально только для чтения
+                timeInput.style.display = 'none'; // Изначально скрыто
+
+                // Кнопка редактирования времени
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Ред.';
+                editBtn.className = 'edit-timing-btn';
+                editBtn.onclick = () => {
+                    seekLink.style.display = 'none'; // Скрываем ссылку
+                    timeInput.style.display = 'inline-block'; // Показываем поле ввода
+                    timeInput.readOnly = false; // Разрешаем редактирование
+                    timeInput.focus(); // Устанавливаем фокус
+                };
+
+                // Обработчик события потери фокуса для поля ввода времени (сохранение изменений)
+                timeInput.onblur = () => {
+                    const newTimeStr = timeInput.value;
+                    const parsedTime = parseTimeToSeconds(newTimeStr);
+
+                    if (!isNaN(parsedTime) && parsedTime >= 0) {
+                        entry.time = parsedTime;
+                        entry.formatted = formatSecondsToMMSS(parsedTime);
+                        timings.sort((a, b) => a.time - b.time); // Пересортировываем после изменения времени
+                        renderTimings(); // Перерисовываем список для обновления порядка и значений
+                        saveTimings();
+                    } else {
+                        alert('Некорректный формат времени. Используйте ММ:СС (например, 01:23).');
+                        timeInput.value = entry.formatted; // Возвращаем исходное значение
+                    }
+                    timeInput.readOnly = true;
+                    timeInput.style.display = 'none';
+                    seekLink.style.display = 'inline-block'; // Снова показываем ссылку
+                };
+
+                // Обработчик нажатия Enter для поля ввода времени
+                timeInput.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); // Предотвращаем перенос строки
+                        timeInput.blur(); // Вызываем событие blur для сохранения
+                    }
+                };
+
+                // Текстовое поле для заметки
+                const textarea = document.createElement('textarea');
+                textarea.value = entry.text;
+                textarea.rows = 2;
                 textarea.placeholder = "Напишите заметку здесь...";
+                textarea.className = 'timing-note-textarea';
                 textarea.oninput = (e) => {
                     entry.text = e.target.value; // Обновляем текст заметки в массиве
                     saveTimings(); // Сохраняем изменения при каждом вводе
                 };
 
-                div.appendChild(link);
+                // Кнопка удаления
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Удалить';
+                deleteBtn.className = 'delete-timing-btn';
+                deleteBtn.onclick = () => {
+                    if (confirm('Вы уверены, что хотите удалить этот тайминг?')) {
+                        // Находим индекс элемента для удаления
+                        const indexToDelete = timings.indexOf(entry);
+                        if (indexToDelete > -1) {
+                            timings.splice(indexToDelete, 1); // Удаляем из массива
+                            renderTimings(); // Перерисовываем список
+                            saveTimings(); // Сохраняем изменения
+                        }
+                    }
+                };
+
+                // Добавляем элементы в div тайминга
+                div.appendChild(seekLink);
+                div.appendChild(timeInput);
+                div.appendChild(editBtn);
                 div.appendChild(textarea);
+                div.appendChild(deleteBtn);
                 listElement.appendChild(div); // Добавляем div со всеми элементами в список
             });
         }
 
         /**
          * Копирует все отформатированные тайминги (включая заметки, если есть) в буфер обмена.
+         * Каждая строка обрезается от лишних пробелов и пустые строки фильтруются.
          */
         function copyTimings() {
             // Собираем все тайминги и заметки в одну строку
             const textToCopy = timings.map(entry => {
-                return entry.formatted + (entry.text ? ` - ${entry.text}` : '');
-            }).join('\n');
+                // Формируем строку для каждой записи: "ММ:СС Заметка" (без " - ")
+                const line = entry.formatted + (entry.text ? ` ${entry.text}` : ''); // Только пробел
+                return line.trim(); // Убираем любые лишние пробелы в начале/конце каждой строки
+            }).filter(line => line.length > 0) // Фильтруем любые полностью пустые строки
+              .join('\n'); // Объединяем строки с переносом на новую строку
 
             if (textToCopy) {
                 // Используем Clipboard API для копирования текста
@@ -599,6 +741,7 @@
 
         /**
          * Вставляет тайминги из текстового поля, парсит их и добавляет к существующим.
+         * Улучшена логика парсинга для обработки форматов "ММ:СС Заметка" и "ММ:СС - Заметка".
          */
         function pasteTimings() {
             const pastedText = document.getElementById('pasteTimingsTextarea').value;
@@ -624,10 +767,14 @@
                     const totalSeconds = minutes * 60 + seconds;
 
                     let note = '';
-                    // Ищем разделитель " - " для заметки
-                    const noteStartIndex = trimmedLine.indexOf(' - ');
-                    if (noteStartIndex !== -1) {
-                        note = trimmedLine.substring(noteStartIndex + 3).trim();
+                    // Берем всю строку после времени и обрезаем пробелы
+                    const afterTimePart = trimmedLine.substring(match[0].length).trim();
+
+                    // Проверяем, начинается ли заметка с " - " (старый формат)
+                    if (afterTimePart.startsWith('- ')) {
+                        note = afterTimePart.substring(2).trim(); // Удаляем " - "
+                    } else {
+                        note = afterTimePart; // В новом формате просто берем остаток
                     }
 
                     newTimings.push({
@@ -653,9 +800,38 @@
                 document.getElementById('pasteTimingsTextarea').value = ''; // Очищаем поле ввода
                 alert(`Успешно добавлено ${parsedCount} таймингов.`);
             } else {
-                alert('Не удалось распознать ни одного тайминга из вставленного текста. Убедитесь, что формат "ММ:СС - Ваша заметка" или просто "ММ:СС".');
+                alert('Не удалось распознать ни одного тайминга из вставленного текста. Убедитесь, что формат "ММ:СС Заметка" или "ММ:СС - Заметка", или просто "ММ:СС".');
             }
         }
+
+        /**
+         * Вспомогательная функция для парсинга строки времени (ММ:СС) в секунды.
+         * @param {string} timeStr - Строка времени в формате ММ:СС.
+         * @returns {number} - Общее количество секунд или NaN, если формат некорректен.
+         */
+        function parseTimeToSeconds(timeStr) {
+            const parts = timeStr.split(':');
+            if (parts.length === 2) {
+                const minutes = parseInt(parts[0], 10);
+                const seconds = parseInt(parts[1], 10);
+                if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && seconds >= 0 && seconds < 60) {
+                    return minutes * 60 + seconds;
+                }
+            }
+            return NaN; // Возвращаем NaN для некорректного формата
+        }
+
+        /**
+         * Вспомогательная функция для форматирования секунд в строку ММ:СС.
+         * @param {number} totalSeconds - Общее количество секунд.
+         * @returns {string} - Отформатированная строка времени.
+         */
+        function formatSecondsToMMSS(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
 
         // Инициализация при загрузке страницы: загружаем тайминги и отображаем их
         document.addEventListener('DOMContentLoaded', () => {
