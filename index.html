@@ -5,58 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тайминги для YouTube видео</title>
     <style>
+        /* Основные стили для тела страницы */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', Arial, sans-serif; /* Используем Inter, если доступен */
             margin: 20px;
             background-color: #f4f4f4;
             color: #333;
+            line-height: 1.6;
         }
+        /* Контейнер для центрирования и стилизации содержимого */
         .container {
             max-width: 900px;
             margin: 0 auto;
             background-color: #fff;
             padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 12px; /* Более скругленные углы */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Увеличенная тень */
         }
+        /* Заголовок страницы */
         h1 {
             color: #0056b3;
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: bold;
         }
+        /* Секция ввода URL видео */
         .input-section {
             display: flex;
-            margin-bottom: 20px;
-            gap: 10px;
+            margin-bottom: 25px;
+            gap: 10px; /* Промежуток между элементами */
+            flex-wrap: wrap; /* Для адаптивности на маленьких экранах */
         }
+        /* Стили для поля ввода URL */
         .input-section input[type="text"] {
-            flex-grow: 1;
-            padding: 10px;
+            flex-grow: 1; /* Поле занимает все доступное пространство */
+            padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 8px; /* Скругленные углы */
             font-size: 16px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .input-section input[type="text"]:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+        /* Стили для кнопки загрузки видео */
         .input-section button {
-            padding: 10px 15px;
+            padding: 12px 20px;
             background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px; /* Скругленные углы */
             cursor: pointer;
             font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            white-space: nowrap; /* Предотвращает перенос текста кнопки */
         }
         .input-section button:hover {
             background-color: #0056b3;
+            transform: translateY(-1px);
         }
+        .input-section button:active {
+            transform: translateY(0);
+        }
+        /* Контейнер для YouTube видеоплеера */
         .video-container {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio для видео */
             height: 0;
             overflow: hidden;
             background-color: #000;
-            margin-bottom: 20px;
-            border-radius: 8px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
+        /* Стили для iframe YouTube плеера */
         .video-container iframe {
             position: absolute;
             top: 0;
@@ -64,52 +90,138 @@
             width: 100%;
             height: 100%;
             border: 0;
-            border-radius: 8px;
+            border-radius: 10px;
         }
+        /* Секция кнопок управления таймингами */
         .controls {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             gap: 15px;
+            flex-wrap: wrap; /* Для адаптивности */
         }
+        /* Стили для кнопок управления */
         .controls button {
-            padding: 12px 20px;
+            padding: 14px 25px;
             background-color: #28a745;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px; /* Скругленные углы */
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s ease;
+            font-size: 17px;
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         .controls button:hover {
             background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
         }
         .controls button:active {
-            transform: translateY(1px);
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
+        /* Стили для списка таймингов */
         #timingsList {
             background-color: #e9ecef;
             border: 1px solid #ddd;
             padding: 15px;
-            min-height: 100px;
-            border-radius: 4px;
+            min-height: 120px; /* Минимальная высота для отображения */
+            border-radius: 8px;
             line-height: 1.6;
             white-space: pre-wrap; /* Сохраняет переносы строк */
             word-wrap: break-word; /* Переносит длинные слова */
+            max-height: 400px; /* Ограничиваем высоту списка */
+            overflow-y: auto; /* Добавляем прокрутку, если таймингов много */
         }
-        #timingsList a {
+        /* Стили для отдельного элемента тайминга (ссылка + текстовое поле) */
+        .timing-item {
+            display: flex;
+            align-items: flex-start; /* Выравнивание по верху */
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc; /* Разделитель между таймингами */
+        }
+        .timing-item:last-child {
+            border-bottom: none; /* Убираем разделитель для последнего элемента */
+        }
+        /* Стили для ссылок таймингов */
+        .timing-item a {
             color: #007bff;
             text-decoration: none;
+            font-weight: bold;
+            min-width: 60px; /* Минимальная ширина для времени */
+            flex-shrink: 0; /* Не сжимать */
+            padding-top: 5px; /* Выравнивание с текстовым полем */
         }
-        #timingsList a:hover {
+        .timing-item a:hover {
             text-decoration: underline;
         }
+        /* Стили для текстового поля заметки */
+        .timing-item textarea {
+            flex-grow: 1; /* Занимает оставшееся пространство */
+            margin-left: 15px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+            resize: vertical; /* Разрешить изменение размера только по вертикали */
+            min-height: 40px; /* Минимальная высота текстового поля */
+            max-height: 150px; /* Максимальная высота текстового поля */
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .timing-item textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+        /* Информационный текст */
         .info-text {
             text-align: center;
-            margin-top: 15px;
+            margin-top: 20px;
             font-size: 0.9em;
             color: #666;
+            padding: 10px;
+            background-color: #e0f7fa;
+            border-left: 5px solid #00bcd4;
+            border-radius: 5px;
+        }
+
+        /* Медиа-запросы для адаптивности */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .input-section {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .input-section button {
+                width: 100%;
+            }
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .controls button {
+                width: 100%;
+            }
+            .timing-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .timing-item a {
+                margin-bottom: 5px;
+            }
+            .timing-item textarea {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
@@ -123,6 +235,7 @@
         </div>
 
         <div class="video-container">
+            <!-- Iframe для встраивания YouTube видео -->
             <iframe id="youtubePlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         </div>
 
@@ -139,6 +252,8 @@
         <p class="info-text">
             * Нажмите на тайм-код, чтобы перейти к этому моменту в видео.
             <br>
+            * Ваши тайминги автоматически сохраняются в браузере.
+            <br>
             * Для корректной работы YouTube API (чтобы видео показывалось и можно было добавлять тайминги),
             страницу нужно открыть через локальный веб-сервер или на настоящем сервере.
             Простое открытие файла в браузере может работать некорректно из-за ограничений безопасности браузеров.
@@ -149,52 +264,75 @@
 
     <script>
         let player; // Объект YouTube плеера
-        let currentVideoId = '';
-        const timings = []; // Массив для хранения таймингов
+        let currentVideoId = ''; // ID текущего загруженного видео
+        const timings = []; // Массив для хранения объектов таймингов
 
-        // Функция для загрузки YouTube видео
+        // ВАЖНО: Замените это на ваш реальный домен GitHub Pages.
+        // Например, если ваш URL: https://USERNAME.github.io/REPOSITORY_NAME/
+        // То origin должен быть: https://USERNAME.github.io
+        const GITHUB_PAGES_ORIGIN = "https://<ВАШ_ДОМЕН_GITHUB_PAGES>"; 
+        // Пример: const GITHUB_PAGES_ORIGIN = "https://myusername.github.io";
+
+
+        /**
+         * Загружает YouTube видео на страницу по введенному URL.
+         */
         function loadVideo() {
             const url = document.getElementById('youtubeUrl').value;
-            const videoId = getYouTubeVideoId(url);
+            const videoId = getYouTubeVideoId(url); // Извлекаем ID видео из URL
 
             if (videoId) {
                 currentVideoId = videoId;
                 const iframe = document.getElementById('youtubePlayer');
-                // Обновляем src iframe для загрузки видео
-                iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+                // Обновляем src iframe для загрузки видео. enablejsapi=1 позволяет управлять плеером через JS.
+                // Добавляем параметр 'origin' для корректной работы YouTube API на GitHub Pages.
+                iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(GITHUB_PAGES_ORIGIN)}`;
 
-                // Инициализируем YouTube Iframe API
-                if (!player) { // Если плеер еще не инициализирован
+                // Инициализируем YouTube Iframe API, если он еще не загружен
+                if (!player) {
                     const tag = document.createElement('script');
-                    tag.src = "https://www.youtube.com/iframe_api";
+                    tag.src = "https://www.youtube.com/iframe_api"; // URL для загрузки YouTube Iframe API
                     const firstScriptTag = document.getElementsByTagName('script')[0];
-                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-                } else { // Если плеер уже есть, просто загружаем новое видео
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag); // Вставляем скрипт на страницу
+                } else {
+                    // Если плеер уже инициализирован, просто загружаем новое видео по ID
                     player.loadVideoById(videoId);
                 }
             } else {
+                // Используем alert, так как это простое приложение без кастомных модальных окон
                 alert('Пожалуйста, введите корректную ссылку на YouTube видео.');
             }
         }
 
-        // Функция, которая вызывается, когда YouTube Iframe API готов
+        /**
+         * Функция, вызываемая YouTube Iframe API, когда он готов.
+         * Инициализирует объект YT.Player.
+         */
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('youtubePlayer', {
                 events: {
-                    'onReady': onPlayerReady
+                    'onReady': onPlayerReady // Событие, когда плеер готов к работе
                 }
             });
         }
 
-        // Функция, которая вызывается, когда плеер готов
+        /**
+         * Функция, вызываемая, когда YouTube плеер готов к воспроизведению.
+         * @param {Object} event - Объект события плеера.
+         */
         function onPlayerReady(event) {
-            // Можно что-то сделать, когда плеер готов, например, начать воспроизведение
-            // event.target.playVideo();
+            // Здесь можно добавить логику, которая должна выполняться после готовности плеера
+            // Например, event.target.playVideo(); для автоматического воспроизведения
         }
 
-        // Извлекает ID видео из различных форматов ссылок YouTube
+        /**
+         * Извлекает 11-значный ID видео из различных форматов ссылок YouTube.
+         * @param {string} url - Полный URL YouTube видео.
+         * @returns {string} - ID видео или пустая строка, если ID не найден.
+         */
         function getYouTubeVideoId(url) {
             let videoId = '';
+            // Регулярное выражение для извлечения ID из разных форматов YouTube ссылок
             const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
             const match = url.match(regExp);
             if (match && match[1]) {
@@ -203,26 +341,149 @@
             return videoId;
         }
 
-        // Добавляет текущее время видео в список таймингов
+        /**
+         * Добавляет текущее время воспроизведения видео в список таймингов.
+         */
         function addCurrentTime() {
+            // Проверяем, что плеер инициализирован и метод getCurrentTime доступен
             if (player && player.getCurrentTime) {
-                const currentTime = Math.floor(player.getCurrentTime()); // Время в секундах
+                const currentTime = Math.floor(player.getCurrentTime()); // Получаем текущее время в секундах
                 const minutes = Math.floor(currentTime / 60);
                 const seconds = currentTime % 60;
+                // Форматируем время в MM:SS
                 const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
                 const timingEntry = {
-                    time: currentTime,
-                    formatted: formattedTime,
-                    text: '' // Здесь можно будет добавлять описание, если захотите расширить функционал
+                    time: currentTime, // Время в секундах
+                    formatted: formattedTime, // Отформатированное время
+                    text: '' // Инициализируем пустое поле для заметки
                 };
-                timings.push(timingEntry);
-                renderTimings();
+                timings.push(timingEntry); // Добавляем тайминг в массив
+                renderTimings(); // Обновляем отображение списка таймингов
+                saveTimings(); // Сохраняем изменения в localStorage
             } else {
                 alert('Сначала загрузите видео и убедитесь, что оно готово к воспроизведению.');
             }
         }
 
-        // Рендерит список таймингов на странице
+        /**
+         * Рендерит (отображает) список таймингов на странице.
+         * Каждый тайминг теперь включает текстовое поле для заметок.
+         */
         function renderTimings() {
-            const listElement = document.getElementById('timingsList
+            const listElement = document.getElementById('timingsList');
+            if (timings.length === 0) {
+                listElement.innerHTML = 'Пока здесь нет таймингов. Добавьте видео и нажмите "Добавить тайминг".';
+                return;
+            }
+
+            listElement.innerHTML = ''; // Очищаем текущее содержимое списка
+            timings.forEach((entry, index) => {
+                const div = document.createElement('div'); // Используем div для группировки ссылки и текстового поля
+                div.className = 'timing-item'; // Добавляем класс для стилизации
+
+                const link = document.createElement('a'); // Создаем ссылку
+                link.href = "#"; // Устанавливаем href, чтобы ссылка была кликабельной, но не перезагружала страницу
+                link.textContent = entry.formatted; // Текст ссылки - отформатированное время
+                link.onclick = (e) => {
+                    e.preventDefault(); // Предотвращаем стандартное действие ссылки (переход)
+                    if (player && player.seekTo) {
+                        // Перематываем видео к указанному времени (true означает, что воспроизведение начнется сразу)
+                        player.seekTo(entry.time, true);
+                    }
+                };
+
+                const textarea = document.createElement('textarea'); // Создаем текстовое поле
+                textarea.value = entry.text; // Устанавливаем текущий текст заметки
+                textarea.rows = 2; // Начальное количество строк
+                textarea.placeholder = "Напишите заметку здесь...";
+                textarea.oninput = (e) => {
+                    entry.text = e.target.value; // Обновляем текст заметки в массиве
+                    saveTimings(); // Сохраняем изменения при каждом вводе
+                };
+
+                div.appendChild(link);
+                div.appendChild(textarea);
+                listElement.appendChild(div); // Добавляем div со всеми элементами в список
+            });
+        }
+
+        /**
+         * Копирует все отформатированные тайминги (включая заметки, если есть) в буфер обмена.
+         */
+        function copyTimings() {
+            // Собираем все тайминги и заметки в одну строку
+            const textToCopy = timings.map(entry => {
+                return entry.formatted + (entry.text ? ` - ${entry.text}` : '');
+            }).join('\n');
+
+            if (textToCopy) {
+                // Используем Clipboard API для копирования текста
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => {
+                        alert('Тайминги и заметки скопированы в буфер обмена!');
+                    })
+                    .catch(err => {
+                        console.error('Ошибка при копировании: ', err);
+                        alert('Не удалось скопировать тайминги. Попробуйте скопировать вручную.');
+                    });
+            } else {
+                alert('Нет таймингов для копирования.');
+            }
+        }
+
+        /**
+         * Очищает все добавленные тайминги и заметки.
+         */
+        function clearTimings() {
+            // Используем confirm для подтверждения действия (в реальном приложении лучше использовать кастомное модальное окно)
+            if (confirm('Вы уверены, что хотите очистить все тайминги и заметки?')) {
+                timings.length = 0; // Очищаем массив таймингов
+                renderTimings(); // Обновляем отображение (показываем пустой список)
+                saveTimings(); // Сохраняем пустое состояние в localStorage
+                alert('Тайминги и заметки очищены.');
+            }
+        }
+
+        /**
+         * Сохраняет текущий массив таймингов в localStorage.
+         */
+        function saveTimings() {
+            try {
+                localStorage.setItem('videoTimings', JSON.stringify(timings));
+            } catch (e) {
+                console.error('Ошибка сохранения таймингов в localStorage:', e);
+                alert('Не удалось сохранить тайминги автоматически. Возможно, закончилось место в хранилище браузера.');
+            }
+        }
+
+        /**
+         * Загружает тайминги из localStorage при загрузке страницы.
+         */
+        function loadTimings() {
+            try {
+                const savedTimings = localStorage.getItem('videoTimings');
+                if (savedTimings) {
+                    // Очищаем текущий массив перед заполнением
+                    timings.length = 0;
+                    // Парсим JSON и добавляем элементы в массив
+                    const parsedTimings = JSON.parse(savedTimings);
+                    parsedTimings.forEach(item => timings.push(item));
+                }
+            } catch (e) {
+                console.error('Ошибка загрузки таймингов из localStorage:', e);
+                alert('Не удалось загрузить сохраненные тайминги. Возможно, данные повреждены.');
+                // Если данные повреждены, лучше очистить их, чтобы избежать дальнейших ошибок
+                localStorage.removeItem('videoTimings');
+                timings.length = 0;
+            }
+            renderTimings(); // Отображаем загруженные (или пустые) тайминги
+        }
+
+        // Инициализация при загрузке страницы: загружаем тайминги и отображаем их
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTimings();
+        });
+    </script>
+</body>
+</html>
