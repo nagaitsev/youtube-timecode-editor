@@ -240,7 +240,8 @@
         </div>
 
         <div class="controls">
-            <button onclick="addCurrentTime()">Добавить тайминг</button>
+            <!-- Кнопка "Добавить тайминг" изначально отключена -->
+            <button id="addTimingBtn" onclick="addCurrentTime()" disabled>Добавить тайминг</button>
             <button onclick="copyTimings()">Копировать тайминги</button>
             <button onclick="clearTimings()">Очистить тайминги</button>
         </div>
@@ -266,12 +267,15 @@
         let player; // Объект YouTube плеера
         let currentVideoId = ''; // ID текущего загруженного видео
         const timings = []; // Массив для хранения объектов таймингов
+        let addTimingButton; // Ссылка на кнопку "Добавить тайминг"
 
         // ВАЖНО: Замените это на ваш реальный домен GitHub Pages.
         // Например, если ваш URL: https://USERNAME.github.io/REPOSITORY_NAME/
         // То origin должен быть: https://USERNAME.github.io
-        const GITHUB_PAGES_ORIGIN = "https://nagaitsev.github.io/youtube-timecode-editor/"; 
         // Пример: const GITHUB_PAGES_ORIGIN = "https://myusername.github.io";
+        // Или, если вы используете репозиторий: https://myusername.github.io/my-repo-name
+        // То origin все равно будет: https://myusername.github.io
+        const GITHUB_PAGES_ORIGIN = window.location.origin; // Автоматически определяет текущий домен
 
 
         /**
@@ -280,6 +284,10 @@
         function loadVideo() {
             const url = document.getElementById('youtubeUrl').value;
             const videoId = getYouTubeVideoId(url); // Извлекаем ID видео из URL
+
+            if (addTimingButton) {
+                addTimingButton.disabled = true; // Отключаем кнопку при загрузке нового видео
+            }
 
             if (videoId) {
                 currentVideoId = videoId;
@@ -296,10 +304,10 @@
                     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag); // Вставляем скрипт на страницу
                 } else {
                     // Если плеер уже инициализирован, просто загружаем новое видео по ID
+                    // onPlayerReady не будет вызван снова, поэтому используем onPlayerStateChange
                     player.loadVideoById(videoId);
                 }
             } else {
-                // Используем alert, так как это простое приложение без кастомных модальных окон
                 alert('Пожалуйста, введите корректную ссылку на YouTube видео.');
             }
         }
@@ -311,7 +319,8 @@
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('youtubePlayer', {
                 events: {
-                    'onReady': onPlayerReady // Событие, когда плеер готов к работе
+                    'onReady': onPlayerReady, // Событие, когда плеер готов к работе
+                    'onStateChange': onPlayerStateChange // Событие изменения состояния плеера
                 }
             });
         }
@@ -321,8 +330,30 @@
          * @param {Object} event - Объект события плеера.
          */
         function onPlayerReady(event) {
-            // Здесь можно добавить логику, которая должна выполняться после готовности плеера
-            // Например, event.target.playVideo(); для автоматического воспроизведения
+            // Включаем кнопку "Добавить тайминг" после того, как плеер готов
+            if (addTimingButton) {
+                addTimingButton.disabled = false;
+            }
+            // Можно что-то сделать, когда плеер готов, например, начать воспроизведение
+            // event.target.playVideo();
+        }
+
+        /**
+         * Функция, вызываемая при изменении состояния плеера.
+         * @param {Object} event - Объект события плеера.
+         */
+        function onPlayerStateChange(event) {
+            // Включаем кнопку, если видео воспроизводится, на паузе или буферизуется
+            if (addTimingButton) {
+                if (event.data === YT.PlayerState.PLAYING ||
+                    event.data === YT.PlayerState.PAUSED ||
+                    event.data === YT.PlayerState.BUFFERING) {
+                    addTimingButton.disabled = false;
+                } else {
+                    // Отключаем кнопку для других состояний (незагружено, закончилось, ошибка)
+                    addTimingButton.disabled = true;
+                }
+            }
         }
 
         /**
@@ -346,7 +377,8 @@
          */
         function addCurrentTime() {
             // Проверяем, что плеер инициализирован и метод getCurrentTime доступен
-            if (player && player.getCurrentTime) {
+            // А также что кнопка не отключена (что означает, что плеер готов)
+            if (player && player.getCurrentTime && !addTimingButton.disabled) {
                 const currentTime = Math.floor(player.getCurrentTime()); // Получаем текущее время в секундах
                 const minutes = Math.floor(currentTime / 60);
                 const seconds = currentTime % 60;
@@ -362,7 +394,7 @@
                 renderTimings(); // Обновляем отображение списка таймингов
                 saveTimings(); // Сохраняем изменения в localStorage
             } else {
-                alert('Сначала загрузите видео и убедитесь, что оно готово к воспроизведению.');
+                alert('Видео еще не готово. Пожалуйста, подождите, пока оно загрузится и начнет воспроизводиться.');
             }
         }
 
@@ -483,6 +515,12 @@
         // Инициализация при загрузке страницы: загружаем тайминги и отображаем их
         document.addEventListener('DOMContentLoaded', () => {
             loadTimings();
+            // Получаем ссылку на кнопку "Добавить тайминг"
+            addTimingButton = document.getElementById('addTimingBtn');
+            // Изначально отключаем кнопку, пока видео не загружено и не готово
+            if (addTimingButton) {
+                addTimingButton.disabled = true;
+            }
         });
     </script>
 </body>
