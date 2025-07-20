@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тайминги для YouTube видео</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .input-section {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        .input-section input[type="text"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .input-section button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .input-section button:hover {
+            background-color: #0056b3;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            background-color: #000;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 8px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        .controls button {
+            padding: 12px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s ease;
+        }
+        .controls button:hover {
+            background-color: #218838;
+        }
+        .controls button:active {
+            transform: translateY(1px);
+        }
+        #timingsList {
+            background-color: #e9ecef;
+            border: 1px solid #ddd;
+            padding: 15px;
+            min-height: 100px;
+            border-radius: 4px;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Сохраняет переносы строк */
+            word-wrap: break-word; /* Переносит длинные слова */
+        }
+        #timingsList a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        #timingsList a:hover {
+            text-decoration: underline;
+        }
+        .info-text {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тайминги для YouTube видео</h1>
+
+        <div class="input-section">
+            <input type="text" id="youtubeUrl" placeholder="Вставьте ссылку на YouTube видео здесь">
+            <button onclick="loadVideo()">Загрузить видео</button>
+        </div>
+
+        <div class="video-container">
+            <iframe id="youtubePlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+
+        <div class="controls">
+            <button onclick="addCurrentTime()">Добавить тайминг</button>
+            <button onclick="copyTimings()">Копировать тайминги</button>
+            <button onclick="clearTimings()">Очистить тайминги</button>
+        </div>
+
+        <h3>Ваши тайминги:</h3>
+        <div id="timingsList">
+            Пока здесь нет таймингов. Добавьте видео и нажмите "Добавить тайминг".
+        </div>
+        <p class="info-text">
+            * Нажмите на тайм-код, чтобы перейти к этому моменту в видео.
+            <br>
+            * Для корректной работы YouTube API (чтобы видео показывалось и можно было добавлять тайминги),
+            страницу нужно открыть через локальный веб-сервер или на настоящем сервере.
+            Простое открытие файла в браузере может работать некорректно из-за ограничений безопасности браузеров.
+            <br>
+            * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ` или короткая `https://youtu.be/dQw4w9WgXcQ`).
+        </p>
+    </div>
+
+    <script>
+        let player; // Объект YouTube плеера
+        let currentVideoId = '';
+        const timings = []; // Массив для хранения таймингов
+
+        // Функция для загрузки YouTube видео
+        function loadVideo() {
+            const url = document.getElementById('youtubeUrl').value;
+            const videoId = getYouTubeVideoId(url);
+
+            if (videoId) {
+                currentVideoId = videoId;
+                const iframe = document.getElementById('youtubePlayer');
+                // Обновляем src iframe для загрузки видео
+                iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+
+                // Инициализируем YouTube Iframe API
+                if (!player) { // Если плеер еще не инициализирован
+                    const tag = document.createElement('script');
+                    tag.src = "https://www.youtube.com/iframe_api";
+                    const firstScriptTag = document.getElementsByTagName('script')[0];
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                } else { // Если плеер уже есть, просто загружаем новое видео
+                    player.loadVideoById(videoId);
+                }
+            } else {
+                alert('Пожалуйста, введите корректную ссылку на YouTube видео.');
+            }
+        }
+
+        // Функция, которая вызывается, когда YouTube Iframe API готов
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtubePlayer', {
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+        }
+
+        // Функция, которая вызывается, когда плеер готов
+        function onPlayerReady(event) {
+            // Можно что-то сделать, когда плеер готов, например, начать воспроизведение
+            // event.target.playVideo();
+        }
+
+        // Извлекает ID видео из различных форматов ссылок YouTube
+        function getYouTubeVideoId(url) {
+            let videoId = '';
+            const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+            const match = url.match(regExp);
+            if (match && match[1]) {
+                videoId = match[1];
+            }
+            return videoId;
+        }
+
+        // Добавляет текущее время видео в список таймингов
+        function addCurrentTime() {
+            if (player && player.getCurrentTime) {
+                const currentTime = Math.floor(player.getCurrentTime()); // Время в секундах
+                const minutes = Math.floor(currentTime / 60);
+                const seconds = currentTime % 60;
+                const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                const timingEntry = {
+                    time: currentTime,
+                    formatted: formattedTime,
+                    text: '' // Здесь можно будет добавлять описание, если захотите расширить функционал
+                };
+                timings.push(timingEntry);
+                renderTimings();
+            } else {
+                alert('Сначала загрузите видео и убедитесь, что оно готово к воспроизведению.');
+            }
+        }
+
+        // Рендерит список таймингов на странице
+        function renderTimings() {
+            const listElement = document.getElementById('timingsList
