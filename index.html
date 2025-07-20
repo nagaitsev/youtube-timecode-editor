@@ -6,47 +6,56 @@
     <title>Тайминги для YouTube видео</title>
     <style>
         /* Общие стили для всего документа */
-        body {
-            margin: 0; /* Убираем стандартные отступы body */
-            padding-top: 0; /* Этот отступ будет установлен JavaScript для компенсации фиксированного заголовка */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%; /* Занимаем всю высоту viewport */
+            overflow: hidden; /* Основной overflow будет управляться flex-контейнером */
             background-color: #f4f4f4;
             color: #333;
-            font-family: 'Inter', Arial, sans-serif; /* Используем Inter, если доступен */
+            font-family: 'Inter', Arial, sans-serif;
             line-height: 1.6;
-            overflow-x: hidden; /* Предотвращаем горизонтальную прокрутку */
         }
 
-        /* Фиксированный заголовок, который будет оставаться на месте при прокрутке */
-        .fixed-header {
-            position: fixed; /* Фиксируем элемент на экране */
-            top: 0; /* Прикрепляем к верхней части экрана */
-            left: 0;
-            width: 100%; /* Занимает всю ширину */
-            background-color: #fff; /* Белый фон, чтобы перекрывать прокручиваемый контент */
-            z-index: 100; /* Гарантируем, что он находится поверх других элементов */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Красивая тень */
-            padding-top: 25px; /* Внутренний отступ сверху */
-            padding-bottom: 25px; /* Внутренний отступ снизу */
+        /* Основной контейнер приложения, который будет flex-контейнером */
+        .app-wrapper {
+            display: flex;
+            flex-direction: column; /* По умолчанию (портретный режим) - элементы располагаются в колонку */
+            height: 100vh; /* Занимает всю высоту viewport */
+            overflow: hidden; /* Управляем прокруткой внутри панелей */
         }
 
-        /* Внутренний контейнер для центрирования содержимого внутри фиксированного заголовка и основного контента */
+        /* Панель для видео и его элементов управления */
+        .video-panel {
+            flex-shrink: 0; /* Не сжимается */
+            background-color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding-bottom: 25px; /* Отступ снизу для кнопок */
+            overflow-y: auto; /* Прокрутка, если контент видеопанели не помещается */
+            position: relative; /* Для позиционирования ползунка */
+            /* Высота в портретном режиме будет установлена JavaScript */
+        }
+
+        /* Панель для таймингов и секции вставки */
+        .timings-panel {
+            flex-grow: 1; /* Занимает все оставшееся пространство */
+            background-color: #f4f4f4;
+            overflow-y: auto; /* Прокрутка для таймингов */
+            padding-top: 20px; /* Отступ сверху для контента */
+        }
+
+        /* Внутренний контейнер для центрирования содержимого и отступов */
         .container-inner {
-            max-width: 900px; /* Максимальная ширина, как у основного контейнера */
-            margin: 0 auto; /* Центрирование */
-            /* Уменьшаем горизонтальный padding, чтобы видео занимало больше места */
-            padding: 0 15px;
-        }
-
-        /* Основная область контента, которая будет прокручиваться */
-        .main-content {
-            /* padding-top будет установлен JavaScript, чтобы содержимое не пряталось под фиксированным заголовком */
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 15px; /* Горизонтальные отступы */
         }
 
         /* Заголовок страницы */
         h1 {
             color: #0056b3;
             text-align: center;
-            margin-top: 0; /* Убираем верхний отступ, так как он уже есть у .fixed-header */
+            margin-top: 25px; /* Отступ сверху */
             margin-bottom: 30px;
             font-size: 2.2em;
             font-weight: bold;
@@ -55,6 +64,7 @@
         /* Секция ввода URL видео */
         .input-section {
             display: flex;
+            align-items: center;
             margin-bottom: 25px;
             gap: 10px;
             flex-wrap: wrap;
@@ -95,11 +105,11 @@
         /* Контейнер для YouTube видеоплеера */
         .video-container {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-            height: 0;
+            /* padding-bottom и height будут установлены JS в портретном режиме для 16:9 */
+            /* В ландшафтном режиме ширина будет установлена JS, а padding-bottom для 16:9 */
             overflow: hidden;
             background-color: #000;
-            margin-bottom: 25px;
+            margin: 0 auto 25px auto; /* Центрирование и отступ снизу */
             border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
@@ -113,11 +123,61 @@
             border-radius: 10px;
         }
 
+        /* Ползунок для регулировки высоты плеера */
+        .player-height-slider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            padding: 0 15px; /* Отступы по бокам */
+        }
+        .player-height-slider label {
+            margin-right: 10px;
+            font-size: 0.9em;
+            color: #555;
+            white-space: nowrap;
+        }
+        .player-height-slider input[type="range"] {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 5px;
+        }
+        .player-height-slider input[type="range"]:hover {
+            opacity: 1;
+        }
+        .player-height-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .player-height-slider input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+
         /* Секция кнопок управления таймингами */
         .controls {
             display: flex;
             justify-content: center;
-            margin-bottom: 30px;
+            margin-top: 15px; /* Отступ сверху */
+            margin-bottom: 0; /* Убираем нижний отступ, так как он есть у video-panel */
             gap: 15px;
             flex-wrap: wrap;
         }
@@ -196,8 +256,7 @@
             line-height: 1.6;
             white-space: pre-wrap;
             word-wrap: break-word;
-            max-height: 400px; /* Ограничиваем высоту списка */
-            overflow-y: auto; /* Добавляем прокрутку, если таймингов много */
+            /* max-height будет управлять прокруткой внутри timings-panel */
         }
         .timing-item {
             display: flex;
@@ -205,7 +264,7 @@
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 1px dashed #ccc;
-            gap: 10px; /* Промежуток между элементами тайминга */
+            gap: 10px;
         }
         .timing-item:last-child {
             border-bottom: none;
@@ -218,7 +277,7 @@
             font-size: 0.9em;
             cursor: pointer;
             transition: background-color 0.2s ease;
-            white-space: nowrap; /* Предотвращает перенос текста кнопки */
+            white-space: nowrap;
         }
 
         /* Стили для ссылки времени (для перехода по видео) */
@@ -226,10 +285,10 @@
             color: #007bff;
             text-decoration: none;
             font-weight: bold;
-            min-width: 60px; /* Минимальная ширина для времени */
-            flex-shrink: 0; /* Не сжимать */
-            padding-top: 5px; /* Выравнивание с текстовым полем */
-            display: inline-block; /* По умолчанию отображается */
+            min-width: 60px;
+            flex-shrink: 0;
+            padding-top: 5px;
+            display: inline-block;
         }
         .timing-seek-link:hover {
             text-decoration: underline;
@@ -237,14 +296,14 @@
 
         /* Стили для поля ввода времени (для редактирования) */
         .timing-time-input {
-            width: 60px; /* Фиксированная ширина для поля времени */
+            width: 60px;
             padding: 5px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 0.9em;
             text-align: center;
             flex-shrink: 0;
-            display: none; /* По умолчанию скрыто */
+            display: none;
         }
         .timing-time-input:focus {
             border-color: #007bff;
@@ -254,10 +313,10 @@
 
         /* Стили для кнопки редактирования */
         .edit-timing-btn {
-            background-color: #ffc107; /* Желтый цвет */
+            background-color: #ffc107;
             color: #333;
             border: none;
-            margin-left: 5px; /* Отступ от времени */
+            margin-left: 5px;
             flex-shrink: 0;
         }
         .edit-timing-btn:hover {
@@ -266,15 +325,15 @@
 
         /* Стили для текстового поля заметки */
         .timing-note-textarea {
-            flex-grow: 1; /* Занимает оставшееся пространство */
-            margin-left: 15px; /* Отступ от кнопок времени */
+            flex-grow: 1;
+            margin-left: 15px;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 15px;
-            resize: vertical; /* Разрешить изменение размера только по вертикали */
-            min-height: 40px; /* Минимальная высота текстового поля */
-            max-height: 150px; /* Максимальная высота текстового поля */
+            resize: vertical;
+            min-height: 40px;
+            max-height: 150px;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
@@ -286,10 +345,10 @@
 
         /* Стили для кнопки удаления */
         .delete-timing-btn {
-            background-color: #dc3545; /* Красный цвет */
+            background-color: #dc3545;
             color: white;
             border: none;
-            margin-left: 10px; /* Отступ от заметки */
+            margin-left: 10px;
             flex-shrink: 0;
         }
         .delete-timing-btn:hover {
@@ -308,15 +367,59 @@
             border-radius: 5px;
         }
 
-        /* Медиа-запросы для адаптивности */
+        /* Медиа-запрос для горизонтальной ориентации (ландшафтный режим) */
+        @media (orientation: landscape) {
+            .app-wrapper {
+                flex-direction: row; /* Элементы располагаются в строку */
+            }
+
+            .video-panel {
+                /* flex-basis и max-width будут установлены JS */
+                height: 100vh; /* Занимает всю высоту */
+                overflow-y: auto; /* Прокрутка для видео-панели */
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1); /* Тень справа */
+                padding-bottom: 25px; /* Отступ снизу для кнопок */
+            }
+
+            .timings-panel {
+                /* flex-basis и max-width будут установлены JS */
+                height: 100vh; /* Занимает всю высоту */
+                padding-top: 25px; /* Отступ сверху для контента */
+            }
+
+            .container-inner {
+                padding: 0 15px; /* Сохраняем небольшой отступ */
+            }
+
+            .video-container {
+                /* В ландшафтном режиме ширина будет установлена JS через CSS переменную */
+                /* Высота будет автоматически рассчитана для 16:9 */
+                padding-bottom: 0; /* Убираем padding-bottom из базовых стилей, JS его установит */
+                height: 0; /* Устанавливаем высоту в 0, чтобы padding-bottom управлял размером */
+                margin-bottom: 15px; /* Уменьшаем отступ */
+            }
+            .video-container iframe {
+                height: 100%; /* Iframe занимает всю высоту контейнера */
+            }
+
+            /* Ползунок виден в ландшафтном режиме */
+            .player-height-slider {
+                display: flex;
+            }
+
+            h1 {
+                margin-top: 0; /* Убираем верхний отступ, так как панель уже имеет свой padding-top */
+            }
+        }
+
+        /* Медиа-запросы для мобильных устройств (портретный режим по умолчанию) */
         @media (max-width: 768px) {
             .fixed-header {
-                padding-left: 15px; /* Уменьшаем горизонтальный отступ для мобильных */
-                padding-right: 15px;
+                padding-left: 10px; /* Уменьшаем горизонтальный отступ для мобильных */
+                padding-right: 10px;
             }
             .container-inner {
-                /* На мобильных устройствах убираем padding для максимальной ширины видео */
-                padding: 0;
+                padding: 0; /* На мобильных устройствах убираем внутренний padding для максимальной ширины видео */
             }
             h1 {
                 font-size: 1.8em;
@@ -350,9 +453,9 @@
                 text-align: left;
             }
             .edit-timing-btn, .delete-timing-btn {
-                width: auto; /* Кнопки по ширине содержимого */
+                width: 100%; /* Кнопки редактирования/удаления также занимают всю ширину */
                 margin-left: 0;
-                margin-right: 5px;
+                margin-right: 0;
             }
             .timing-note-textarea {
                 margin-left: 0;
@@ -364,52 +467,60 @@
     </style>
 </head>
 <body>
-    <!-- Фиксированный заголовок -->
-    <div class="fixed-header">
-        <div class="container-inner">
-            <h1>Тайминги для YouTube видео</h1>
+    <div class="app-wrapper">
+        <!-- Видео-панель (фиксированная в портретном режиме, 3/4 в ландшафтном) -->
+        <div class="video-panel">
+            <div class="container-inner">
+                <h1>Тайминги для YouTube видео</h1>
 
-            <div class="input-section">
-                <input type="text" id="youtubeUrl" placeholder="Вставьте ссылку на YouTube видео здесь">
-                <button onclick="loadVideo()">Загрузить видео</button>
-            </div>
+                <div class="input-section">
+                    <input type="text" id="youtubeUrl" placeholder="Вставьте ссылку на YouTube видео здесь">
+                    <button onclick="loadVideo()">Загрузить видео</button>
+                </div>
 
-            <div class="video-container">
-                <iframe id="youtubePlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            </div>
+                <div class="video-container">
+                    <iframe id="youtubePlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                </div>
 
-            <div class="controls">
-                <button id="addTimingBtn" onclick="addCurrentTime()" disabled>Добавить тайминг</button>
-                <button onclick="copyTimings()">Копировать тайминги</button>
-                <button onclick="clearTimings()">Очистить тайминги</button>
+                <!-- Ползунок для регулировки размера плеера -->
+                <div class="player-height-slider">
+                    <label for="playerHeightRange">Размер видео:</label>
+                    <input type="range" id="playerHeightRange" min="20" max="80" value="75">
+                </div>
+
+                <div class="controls">
+                    <button id="addTimingBtn" onclick="addCurrentTime()" disabled>Добавить тайминг</button>
+                    <button onclick="copyTimings()">Копировать тайминги</button>
+                    <button onclick="clearTimings()">Очистить тайминги</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Основной прокручиваемый контент -->
-    <div class="main-content">
-        <div class="container-inner">
-            <div class="paste-section">
-                <h3>Вставить ранее скопированные тайминги</h3>
-                <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 Моя заметка"></textarea>
-                <button onclick="pasteTimings()">Вставить тайминги</button>
-            </div>
+        <!-- Панель таймингов (прокручиваемая в портретном режиме, 1/4 в ландшафтном) -->
+        <div class="timings-panel">
+            <div class="container-inner">
+                <div class="paste-section">
+                    <h3>Вставить ранее скопированные тайминги</h3>
+                    <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 Моя заметка"></textarea>
+                    <button onclick="pasteTimings()">Вставить тайминги</button>
+                </div>
 
-            <h3>Ваши тайминги:</h3>
-            <div id="timingsList">
-                Пока здесь нет таймингов. Добавьте видео и нажмите "Добавить тайминг".
+                <h3>Ваши тайминги:</h3>
+                <div id="timingsList">
+                    Пока здесь нет таймингов. Добавьте видео и нажмите "Добавить тайминг".
+                </div>
+                <p class="info-text">
+                    * Нажмите на тайм-код, чтобы перейти к этому моменту в видео.
+                    <br>
+                    * Ваши тайминги автоматически сохраняются в браузере.
+                    <br>
+                    * Для корректной работы YouTube API (чтобы видео показывалось и можно было добавлять тайминги),
+                    страницу нужно открыть через локальный веб-сервер или на настоящем сервере.
+                    Простое открытие файла в браузере может работать некорректно из-за ограничений безопасности браузеров.
+                    <br>
+                    * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ` или короткая `https://youtu.be/dQw4w9WgXcQ`).
+                </p>
             </div>
-            <p class="info-text">
-                * Нажмите на тайм-код, чтобы перейти к этому моменту в видео.
-                <br>
-                * Ваши тайминги автоматически сохраняются в браузере.
-                <br>
-                * Для корректной работы YouTube API (чтобы видео показывалось и можно было добавлять тайминги),
-                страницу нужно открыть через локальный веб-сервер или на настоящем сервере.
-                Простое открытие файла в браузере может работать некорректно из-за ограничений безопасности браузеров.
-                <br>
-                * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ` или короткая `https://youtu.be/dQw4w9WgXcQ`).
-            </p>
         </div>
     </div>
 
@@ -418,21 +529,13 @@
         let currentVideoId = ''; // ID текущего загруженного видео
         const timings = []; // Массив для хранения объектов таймингов
         let addTimingButton; // Ссылка на кнопку "Добавить тайминг"
+        let playerHeightRange; // Ссылка на ползунок регулировки размера плеера
+        let videoContainer; // Ссылка на контейнер видео
+        let videoPanel; // Ссылка на панель видео
+        let timingsPanel; // Ссылка на панель таймингов
 
         // Автоматически определяет текущий домен для параметра 'origin' YouTube API
         const GITHUB_PAGES_ORIGIN = window.location.origin;
-
-        /**
-         * Функция для динамической настройки отступа основного контента
-         * для компенсации высоты фиксированного заголовка.
-         */
-        function adjustContentPadding() {
-            const fixedHeader = document.querySelector('.fixed-header');
-            const mainContent = document.querySelector('.main-content');
-            if (fixedHeader && mainContent) {
-                mainContent.style.paddingTop = fixedHeader.offsetHeight + 'px';
-            }
-        }
 
         /**
          * Загружает YouTube видео на страницу по введенному URL.
@@ -833,21 +936,63 @@
             return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
+        /**
+         * Устанавливает размер видеоконтейнера и панели на основе значения ползунка
+         * в зависимости от ориентации экрана.
+         */
+        function updatePlayerSize() {
+            const sliderValue = parseInt(playerHeightRange.value, 10); // Значение ползунка (от 20 до 80)
+
+            if (window.matchMedia("(orientation: portrait)").matches) {
+                // Портретный режим: регулируем высоту video-panel в vh
+                videoPanel.style.height = `${sliderValue}vh`;
+                // Убеждаемся, что video-container внутри занимает всю ширину панели и сохраняет 16:9
+                videoContainer.style.width = '100%';
+                videoContainer.style.paddingBottom = '56.25%';
+                videoContainer.style.height = '0'; // Важно для padding-bottom
+            } else {
+                // Ландшафтный режим: регулируем ширину video-panel в % от общей ширины экрана
+                videoPanel.style.flexBasis = `${sliderValue}%`;
+                videoPanel.style.maxWidth = `${sliderValue}%`;
+                timingsPanel.style.flexBasis = `${100 - sliderValue}%`;
+                timingsPanel.style.maxWidth = `${100 - sliderValue}%`;
+
+                // Сбрасываем высоту video-panel, если она была установлена в vh в портретном режиме,
+                // чтобы она занимала всю высоту в ландшафтном режиме.
+                videoPanel.style.height = '100vh';
+
+                // Убеждаемся, что video-container внутри занимает всю ширину своей панели и сохраняет 16:9
+                videoContainer.style.width = '100%';
+                videoContainer.style.paddingBottom = '56.25%';
+                videoContainer.style.height = '0'; // Важно для padding-bottom
+            }
+        }
+
 
         // Инициализация при загрузке страницы: загружаем тайминги и отображаем их
         document.addEventListener('DOMContentLoaded', () => {
             loadTimings();
-            // Получаем ссылку на кнопку "Добавить тайминг"
+            // Получаем ссылки на элементы
             addTimingButton = document.getElementById('addTimingBtn');
+            playerHeightRange = document.getElementById('playerHeightRange');
+            videoContainer = document.querySelector('.video-container');
+            videoPanel = document.querySelector('.video-panel'); // Получаем ссылку на video-panel
+            timingsPanel = document.querySelector('.timings-panel'); // Получаем ссылку на timings-panel
+
             // Изначально отключаем кнопку, пока видео не загружено и не готово
             if (addTimingButton) {
                 addTimingButton.disabled = true;
             }
-            adjustContentPadding(); // Вызываем настройку отступа при загрузке
-        });
 
-        // Также настраиваем отступ при изменении размера окна (для адаптивности)
-        window.addEventListener('resize', adjustContentPadding);
+            // Устанавливаем начальный размер плеера при загрузке
+            updatePlayerSize();
+
+            // Добавляем слушатель события для ползунка
+            playerHeightRange.addEventListener('input', updatePlayerSize);
+
+            // Также настраиваем размер плеера при изменении размера окна или ориентации
+            window.addEventListener('resize', updatePlayerSize);
+        });
     </script>
 </body>
 </html>
