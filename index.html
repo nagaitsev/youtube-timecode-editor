@@ -17,7 +17,7 @@
             line-height: 1.6;
         }
 
-        /* Основной контейнер приложения, который будет flex-контейнером */
+        /* Основной контейнер приложения, который будет grid-контейнером в ландшафте */
         .app-wrapper {
             display: flex;
             flex-direction: column; /* По умолчанию (портретный режим) - элементы располагаются в колонку */
@@ -27,18 +27,17 @@
 
         /* Панель для видео и его элементов управления */
         .video-panel {
-            flex-shrink: 0; /* Не сжимается */
+            flex-shrink: 0; /* Не сжимается в портретном режиме */
             background-color: #fff;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             padding-bottom: 25px; /* Отступ снизу для кнопок */
             overflow-y: auto; /* Прокрутка, если контент видеопанели не помещается */
-            position: relative; /* Для позиционирования ползунка */
-            /* Высота в портретном режиме будет установлена JavaScript */
+            position: relative;
         }
 
         /* Панель для таймингов и секции вставки */
         .timings-panel {
-            flex-grow: 1; /* Занимает все оставшееся пространство */
+            flex-grow: 1; /* Занимает все оставшееся пространство в портретном режиме */
             background-color: #f4f4f4;
             overflow-y: auto; /* Прокрутка для таймингов */
             padding-top: 20px; /* Отступ сверху для контента */
@@ -105,11 +104,12 @@
         /* Контейнер для YouTube видеоплеера */
         .video-container {
             position: relative;
-            /* padding-bottom и height будут установлены JS в портретном режиме для 16:9 */
-            /* В ландшафтном режиме ширина будет установлена JS, а padding-bottom для 16:9 */
+            width: 100%; /* Плеер всегда занимает 100% ширины своей панели */
+            padding-bottom: 56.25%; /* Соотношение сторон 16:9 */
+            height: 0; /* Важно для padding-bottom */
             overflow: hidden;
             background-color: #000;
-            margin: 0 auto 25px auto; /* Центрирование и отступ снизу */
+            margin-bottom: 25px;
             border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
@@ -122,55 +122,6 @@
             border: 0;
             border-radius: 10px;
         }
-
-        /* Ползунок для регулировки высоты плеера */
-        .player-height-slider {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 15px;
-            margin-bottom: 15px;
-            padding: 0 15px; /* Отступы по бокам */
-        }
-        .player-height-slider label {
-            margin-right: 10px;
-            font-size: 0.9em;
-            color: #555;
-            white-space: nowrap;
-        }
-        .player-height-slider input[type="range"] {
-            flex-grow: 1;
-            -webkit-appearance: none;
-            width: 100%;
-            height: 8px;
-            background: #d3d3d3;
-            outline: none;
-            opacity: 0.7;
-            transition: opacity .2s;
-            border-radius: 5px;
-        }
-        .player-height-slider input[type="range"]:hover {
-            opacity: 1;
-        }
-        .player-height-slider input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #007bff;
-            cursor: pointer;
-            border-radius: 50%;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        }
-        .player-height-slider input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: #007bff;
-            cursor: pointer;
-            border-radius: 50%;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        }
-
 
         /* Секция кнопок управления таймингами */
         .controls {
@@ -256,7 +207,6 @@
             line-height: 1.6;
             white-space: pre-wrap;
             word-wrap: break-word;
-            /* max-height будет управлять прокруткой внутри timings-panel */
         }
         .timing-item {
             display: flex;
@@ -367,24 +317,51 @@
             border-radius: 5px;
         }
 
+        /* Стили для разделителя */
+        .splitter {
+            width: 8px; /* Ширина разделителя */
+            cursor: ew-resize; /* Курсор для горизонтального изменения размера */
+            background-color: #ccc;
+            flex-shrink: 0; /* Не сжимается */
+            z-index: 101; /* Выше панелей */
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s;
+        }
+        .splitter:hover {
+            background-color: #999;
+        }
+        .splitter.dragging {
+            background-color: #007bff; /* Цвет при перетаскивании */
+        }
+
         /* Медиа-запрос для горизонтальной ориентации (ландшафтный режим) */
         @media (orientation: landscape) {
             .app-wrapper {
                 flex-direction: row; /* Элементы располагаются в строку */
+                display: grid; /* Используем Grid для колонок */
+                grid-template-columns: 3fr 8px 1fr; /* 3/4 видео, 8px разделитель, 1/4 тайминги */
+                grid-template-rows: 1fr; /* Одна строка */
             }
 
             .video-panel {
-                /* flex-basis и max-width будут установлены JS */
+                /* flex-basis и max-width будут управляться grid-template-columns */
                 height: 100vh; /* Занимает всю высоту */
                 overflow-y: auto; /* Прокрутка для видео-панели */
                 box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1); /* Тень справа */
                 padding-bottom: 25px; /* Отступ снизу для кнопок */
+                grid-column: 1; /* Размещаем в первой колонке */
             }
 
             .timings-panel {
-                /* flex-basis и max-width будут установлены JS */
+                /* flex-basis и max-width будут управляться grid-template-columns */
                 height: 100vh; /* Занимает всю высоту */
                 padding-top: 25px; /* Отступ сверху для контента */
+                grid-column: 3; /* Размещаем в третьей колонке */
+            }
+
+            .splitter {
+                grid-column: 2; /* Разделитель во второй колонке */
+                height: 100vh; /* Занимает всю высоту */
             }
 
             .container-inner {
@@ -392,19 +369,19 @@
             }
 
             .video-container {
-                /* В ландшафтном режиме ширина будет установлена JS через CSS переменную */
-                /* Высота будет автоматически рассчитана для 16:9 */
-                padding-bottom: 0; /* Убираем padding-bottom из базовых стилей, JS его установит */
-                height: 0; /* Устанавливаем высоту в 0, чтобы padding-bottom управлял размером */
+                /* Плеер всегда занимает 100% ширины своей панели, соотношение 16:9 */
+                width: 100%;
+                padding-bottom: 56.25%;
+                height: 0;
                 margin-bottom: 15px; /* Уменьшаем отступ */
             }
             .video-container iframe {
                 height: 100%; /* Iframe занимает всю высоту контейнера */
             }
 
-            /* Ползунок виден в ландшафтном режиме */
+            /* Ползунок скрыт в ландшафтном режиме */
             .player-height-slider {
-                display: flex;
+                display: none;
             }
 
             h1 {
@@ -468,7 +445,7 @@
 </head>
 <body>
     <div class="app-wrapper">
-        <!-- Видео-панель (фиксированная в портретном режиме, 3/4 в ландшафтном) -->
+        <!-- Видео-панель -->
         <div class="video-panel">
             <div class="container-inner">
                 <h1>Тайминги для YouTube видео</h1>
@@ -482,12 +459,6 @@
                     <iframe id="youtubePlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                 </div>
 
-                <!-- Ползунок для регулировки размера плеера -->
-                <div class="player-height-slider">
-                    <label for="playerHeightRange">Размер видео:</label>
-                    <input type="range" id="playerHeightRange" min="20" max="80" value="75">
-                </div>
-
                 <div class="controls">
                     <button id="addTimingBtn" onclick="addCurrentTime()" disabled>Добавить тайминг</button>
                     <button onclick="copyTimings()">Копировать тайминги</button>
@@ -496,7 +467,10 @@
             </div>
         </div>
 
-        <!-- Панель таймингов (прокручиваемая в портретном режиме, 1/4 в ландшафтном) -->
+        <!-- Разделитель (только для ландшафтного режима) -->
+        <div class="splitter"></div>
+
+        <!-- Панель таймингов -->
         <div class="timings-panel">
             <div class="container-inner">
                 <div class="paste-section">
@@ -529,10 +503,11 @@
         let currentVideoId = ''; // ID текущего загруженного видео
         const timings = []; // Массив для хранения объектов таймингов
         let addTimingButton; // Ссылка на кнопку "Добавить тайминг"
-        let playerHeightRange; // Ссылка на ползунок регулировки размера плеера
         let videoContainer; // Ссылка на контейнер видео
         let videoPanel; // Ссылка на панель видео
         let timingsPanel; // Ссылка на панель таймингов
+        let splitter; // Ссылка на разделитель
+        let appWrapper; // Ссылка на основной контейнер
 
         // Автоматически определяет текущий домен для параметра 'origin' YouTube API
         const GITHUB_PAGES_ORIGIN = window.location.origin;
@@ -937,34 +912,73 @@
         }
 
         /**
-         * Устанавливает размер видеоконтейнера и панели на основе значения ползунка
-         * в зависимости от ориентации экрана.
+         * Инициализирует функционал перетаскивания разделителя.
          */
-        function updatePlayerSize() {
-            const sliderValue = parseInt(playerHeightRange.value, 10); // Значение ползунка (от 20 до 80)
+        function setupSplitterDragging() {
+            let isDragging = false;
 
+            splitter.addEventListener('mousedown', (e) => {
+                if (window.matchMedia("(orientation: landscape)").matches) {
+                    isDragging = true;
+                    splitter.classList.add('dragging');
+                    document.body.style.cursor = 'ew-resize'; /* Изменяем курсор для всего body при перетаскивании */
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }
+            });
+
+            function onMouseMove(e) {
+                if (!isDragging) return;
+
+                const appWrapperRect = appWrapper.getBoundingClientRect();
+                let newVideoPanelWidth = e.clientX - appWrapperRect.left;
+                let totalWidth = appWrapperRect.width;
+
+                // Ограничиваем минимальную и максимальную ширину панелей
+                const minVideoWidth = totalWidth * 0.2; // Минимум 20% для видео
+                const maxVideoWidth = totalWidth * 0.8; // Максимум 80% для видео
+
+                if (newVideoPanelWidth < minVideoWidth) {
+                    newVideoPanelWidth = minVideoWidth;
+                } else if (newVideoPanelWidth > maxVideoWidth) {
+                    newVideoPanelWidth = maxVideoWidth;
+                }
+
+                const videoPanelPercentage = (newVideoPanelWidth / totalWidth) * 100;
+                const timingsPanelPercentage = 100 - videoPanelPercentage;
+
+                // Обновляем grid-template-columns для app-wrapper
+                appWrapper.style.gridTemplateColumns = `${videoPanelPercentage}% 8px ${timingsPanelPercentage}%`;
+            }
+
+            function onMouseUp() {
+                isDragging = false;
+                splitter.classList.remove('dragging');
+                document.body.style.cursor = 'default'; /* Возвращаем стандартный курсор */
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+        }
+
+        /**
+         * Устанавливает начальные размеры панелей в зависимости от ориентации.
+         */
+        function setInitialPanelSizes() {
             if (window.matchMedia("(orientation: portrait)").matches) {
-                // Портретный режим: регулируем высоту video-panel в vh
-                videoPanel.style.height = `${sliderValue}vh`;
-                // Убеждаемся, что video-container внутри занимает всю ширину панели и сохраняет 16:9
-                videoContainer.style.width = '100%';
-                videoContainer.style.paddingBottom = '56.25%';
-                videoContainer.style.height = '0'; // Важно для padding-bottom
+                // Портретный режим: video-panel занимает 50% высоты, timings-panel - оставшееся
+                videoPanel.style.height = '50vh';
+                videoPanel.style.flexBasis = 'auto'; /* Сброс для flexbox */
+                videoPanel.style.maxWidth = 'none'; /* Сброс для flexbox */
+                timingsPanel.style.flexBasis = 'auto'; /* Сброс для flexbox */
+                timingsPanel.style.maxWidth = 'none'; /* Сброс для flexbox */
+                appWrapper.style.gridTemplateColumns = 'none'; /* Сброс для grid */
+                appWrapper.style.flexDirection = 'column'; /* Убедимся, что flex-direction column */
+
             } else {
-                // Ландшафтный режим: регулируем ширину video-panel в % от общей ширины экрана
-                videoPanel.style.flexBasis = `${sliderValue}%`;
-                videoPanel.style.maxWidth = `${sliderValue}%`;
-                timingsPanel.style.flexBasis = `${100 - sliderValue}%`;
-                timingsPanel.style.maxWidth = `${100 - sliderValue}%`;
-
-                // Сбрасываем высоту video-panel, если она была установлена в vh в портретном режиме,
-                // чтобы она занимала всю высоту в ландшафтном режиме.
-                videoPanel.style.height = '100vh';
-
-                // Убеждаемся, что video-container внутри занимает всю ширину своей панели и сохраняет 16:9
-                videoContainer.style.width = '100%';
-                videoContainer.style.paddingBottom = '56.25%';
-                videoContainer.style.height = '0'; // Важно для padding-bottom
+                // Ландшафтный режим: video-panel 75%, timings-panel 25%
+                videoPanel.style.height = '100vh'; /* Занимает всю высоту */
+                appWrapper.style.gridTemplateColumns = '3fr 8px 1fr'; /* Начальное соотношение 3/4 и 1/4 */
+                appWrapper.style.flexDirection = 'row'; /* Убедимся, что flex-direction row */
             }
         }
 
@@ -974,24 +988,25 @@
             loadTimings();
             // Получаем ссылки на элементы
             addTimingButton = document.getElementById('addTimingBtn');
-            playerHeightRange = document.getElementById('playerHeightRange');
             videoContainer = document.querySelector('.video-container');
-            videoPanel = document.querySelector('.video-panel'); // Получаем ссылку на video-panel
-            timingsPanel = document.querySelector('.timings-panel'); // Получаем ссылку на timings-panel
+            videoPanel = document.querySelector('.video-panel');
+            timingsPanel = document.querySelector('.timings-panel');
+            splitter = document.querySelector('.splitter');
+            appWrapper = document.querySelector('.app-wrapper');
 
             // Изначально отключаем кнопку, пока видео не загружено и не готово
             if (addTimingButton) {
                 addTimingButton.disabled = true;
             }
 
-            // Устанавливаем начальный размер плеера при загрузке
-            updatePlayerSize();
+            // Устанавливаем начальные размеры панелей
+            setInitialPanelSizes();
 
-            // Добавляем слушатель события для ползунка
-            playerHeightRange.addEventListener('input', updatePlayerSize);
+            // Инициализируем перетаскивание разделителя
+            setupSplitterDragging();
 
-            // Также настраиваем размер плеера при изменении размера окна или ориентации
-            window.addEventListener('resize', updatePlayerSize);
+            // Также настраиваем размеры панелей при изменении размера окна или ориентации
+            window.addEventListener('resize', setInitialPanelSizes);
         });
     </script>
 </body>
