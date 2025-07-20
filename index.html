@@ -45,7 +45,7 @@
 
         /* Внутренний контейнер для центрирования содержимого и отступов */
         .container-inner {
-            max-width: 900px;
+            max-width: 900px; /* Ограничение по умолчанию */
             margin: 0 auto;
             padding: 0 15px; /* Горизонтальные отступы */
         }
@@ -339,12 +339,11 @@
             .app-wrapper {
                 flex-direction: row; /* Элементы располагаются в строку */
                 display: grid; /* Используем Grid для колонок */
-                grid-template-columns: 3fr 8px 1fr; /* 3/4 видео, 8px разделитель, 1/4 тайминги */
+                grid-template-columns: 3fr 8px 1fr; /* Начальное соотношение 3/4 видео, 8px разделитель, 1/4 тайминги */
                 grid-template-rows: 1fr; /* Одна строка */
             }
 
             .video-panel {
-                /* flex-basis и max-width будут управляться grid-template-columns */
                 height: 100vh; /* Занимает всю высоту */
                 overflow-y: auto; /* Прокрутка для видео-панели */
                 box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1); /* Тень справа */
@@ -353,7 +352,6 @@
             }
 
             .timings-panel {
-                /* flex-basis и max-width будут управляться grid-template-columns */
                 height: 100vh; /* Занимает всю высоту */
                 padding-top: 25px; /* Отступ сверху для контента */
                 grid-column: 3; /* Размещаем в третьей колонке */
@@ -364,14 +362,16 @@
                 height: 100vh; /* Занимает всю высоту */
             }
 
-            .container-inner {
-                padding: 0 15px; /* Сохраняем небольшой отступ */
+            /* В ландшафтном режиме container-inner должен расширяться на всю ширину панели */
+            .video-panel .container-inner,
+            .timings-panel .container-inner {
+                max-width: none; /* Убираем ограничение max-width */
+                padding: 0 15px; /* Сохраняем небольшой горизонтальный отступ */
             }
 
             .video-container {
-                /* Плеер всегда занимает 100% ширины своей панели, соотношение 16:9 */
-                width: 100%;
-                padding-bottom: 56.25%;
+                width: 100%; /* Плеер всегда занимает 100% ширины своей панели */
+                padding-bottom: 56.25%; /* Сохраняем 16:9 */
                 height: 0;
                 margin-bottom: 15px; /* Уменьшаем отступ */
             }
@@ -918,6 +918,7 @@
             let isDragging = false;
 
             splitter.addEventListener('mousedown', (e) => {
+                // Активируем перетаскивание только в ландшафтном режиме
                 if (window.matchMedia("(orientation: landscape)").matches) {
                     isDragging = true;
                     splitter.classList.add('dragging');
@@ -927,11 +928,31 @@
                 }
             });
 
+            // Обработчик для тач-событий (для мобильных устройств)
+            splitter.addEventListener('touchstart', (e) => {
+                if (window.matchMedia("(orientation: landscape)").matches) {
+                    isDragging = true;
+                    splitter.classList.add('dragging');
+                    // document.body.style.cursor = 'ew-resize'; // Курсор не виден на тач-устройствах
+                    document.addEventListener('touchmove', onTouchMove);
+                    document.addEventListener('touchend', onTouchEnd);
+                    e.preventDefault(); // Предотвращаем прокрутку страницы при перетаскивании
+                }
+            }, { passive: false }); // passive: false для preventDefault
+
             function onMouseMove(e) {
                 if (!isDragging) return;
+                updatePanelWidths(e.clientX);
+            }
 
+            function onTouchMove(e) {
+                if (!isDragging || !e.touches[0]) return;
+                updatePanelWidths(e.touches[0].clientX);
+            }
+
+            function updatePanelWidths(clientX) {
                 const appWrapperRect = appWrapper.getBoundingClientRect();
-                let newVideoPanelWidth = e.clientX - appWrapperRect.left;
+                let newVideoPanelWidth = clientX - appWrapperRect.left;
                 let totalWidth = appWrapperRect.width;
 
                 // Ограничиваем минимальную и максимальную ширину панелей
@@ -958,6 +979,13 @@
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
             }
+
+            function onTouchEnd() {
+                isDragging = false;
+                splitter.classList.remove('dragging');
+                document.removeEventListener('touchmove', onTouchMove);
+                document.removeEventListener('touchend', onTouchEnd);
+            }
         }
 
         /**
@@ -966,19 +994,21 @@
         function setInitialPanelSizes() {
             if (window.matchMedia("(orientation: portrait)").matches) {
                 // Портретный режим: video-panel занимает 50% высоты, timings-panel - оставшееся
-                videoPanel.style.height = '50vh';
+                videoPanel.style.height = '50vh'; /* Начальная высота видеопанели */
                 videoPanel.style.flexBasis = 'auto'; /* Сброс для flexbox */
                 videoPanel.style.maxWidth = 'none'; /* Сброс для flexbox */
                 timingsPanel.style.flexBasis = 'auto'; /* Сброс для flexbox */
                 timingsPanel.style.maxWidth = 'none'; /* Сброс для flexbox */
                 appWrapper.style.gridTemplateColumns = 'none'; /* Сброс для grid */
                 appWrapper.style.flexDirection = 'column'; /* Убедимся, что flex-direction column */
+                splitter.style.display = 'none'; /* Скрываем разделитель в портретном режиме */
 
             } else {
                 // Ландшафтный режим: video-panel 75%, timings-panel 25%
                 videoPanel.style.height = '100vh'; /* Занимает всю высоту */
                 appWrapper.style.gridTemplateColumns = '3fr 8px 1fr'; /* Начальное соотношение 3/4 и 1/4 */
                 appWrapper.style.flexDirection = 'row'; /* Убедимся, что flex-direction row */
+                splitter.style.display = 'block'; /* Показываем разделитель в ландшафтном режиме */
             }
         }
 
