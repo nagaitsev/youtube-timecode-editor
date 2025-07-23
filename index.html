@@ -614,10 +614,7 @@
             // А также что кнопка не отключена (что означает, что плеер готов)
             if (player && player.getCurrentTime && !addTimingButton.disabled) {
                 const currentTime = Math.floor(player.getCurrentTime()); // Получаем текущее время в секундах
-                const minutes = Math.floor(currentTime / 60);
-                const seconds = currentTime % 60;
-                // Форматируем время в MM:SS
-                const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                const formattedTime = formatSecondsToMMSS(currentTime); // Используем новую функцию
 
                 const timingEntry = {
                     time: currentTime, // Время в секундах
@@ -691,7 +688,7 @@
                         renderTimings(); // Перерисовываем список для обновления порядка и значений
                         saveTimings();
                     } else {
-                        alert('Некорректный формат времени. Используйте ММ:СС (например, 01:23).');
+                        alert('Некорректный формат времени. Используйте Ч:ММ:СС или ММ:СС (например, 1:05:23 или 01:23).');
                         timeInput.value = entry.formatted; // Возвращаем исходное значение
                     }
                     timeInput.readOnly = true;
@@ -751,7 +748,7 @@
         function copyTimings() {
             // Собираем все тайминги и заметки в одну строку
             const textToCopy = timings.map(entry => {
-                // Формируем строку для каждой записи: "ММ:СС Заметка" (без " - ")
+                // Формируем строку для каждой записи: "Ч:ММ:СС Заметка" или "ММ:СС Заметка"
                 const line = entry.formatted + (entry.text ? ` ${entry.text}` : ''); // Только пробел
                 return line.trim(); // Убираем любые лишние пробелы в начале/конце каждой строки
             }).filter(line => line.length > 0) // Фильтруем любые полностью пустые строки
@@ -833,9 +830,8 @@
 
             const lines = pastedText.split('\n');
             const newTimings = [];
-            // Регулярное выражение для парсинга времени MM:SS в начале строки
-            // Оно теперь ищет время, за которым может следовать пробел и любой текст
-            const timeRegex = /^(\d{1,2}):(\d{2})\s*(.*)$/;
+            // Регулярное выражение для парсинга времени Ч:ММ:СС или ММ:СС
+            const timeRegex = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s*(.*)$/;
             let parsedCount = 0;
 
             lines.forEach(line => {
@@ -844,11 +840,12 @@
 
                 const match = trimmedLine.match(timeRegex);
                 if (match) {
-                    const minutes = parseInt(match[1], 10);
-                    const seconds = parseInt(match[2], 10);
-                    const totalSeconds = minutes * 60 + seconds;
+                    const hours = parseInt(match[1], 10) || 0;
+                    const minutes = parseInt(match[2], 10);
+                    const seconds = parseInt(match[3], 10);
+                    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
 
-                    let note = match[3] || ''; // Вся остальная часть строки после времени
+                    let note = match[4] || ''; // Вся остальная часть строки после времени
                     // Если заметка начинается с " - ", удаляем этот разделитель
                     if (note.startsWith('- ')) {
                         note = note.substring(2).trim();
@@ -858,7 +855,7 @@
 
                     newTimings.push({
                         time: totalSeconds,
-                        formatted: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+                        formatted: formatSecondsToMMSS(totalSeconds),
                         text: note
                     });
                     parsedCount++;
@@ -879,7 +876,7 @@
                 document.getElementById('pasteTimingsTextarea').value = ''; // Очищаем поле ввода
                 alert(`Успешно добавлено ${parsedCount} таймингов.`);
             } else {
-                alert('Не удалось распознать ни одного тайминга из вставленного текста. Убедитесь, что формат "ММ:СС Заметка" или "ММ:СС - Заметка", или просто "ММ:СС".');
+                alert('Не удалось распознать ни одного тайминга из вставленного текста. Убедитесь, что формат "Ч:ММ:СС Заметка" или "ММ:СС Заметка".');
             }
         }
 
@@ -889,15 +886,20 @@
          * @returns {number} - Общее количество секунд или NaN, если формат некорректен.
          */
         function parseTimeToSeconds(timeStr) {
-            const parts = timeStr.split(':');
-            if (parts.length === 2) {
-                const minutes = parseInt(parts[0], 10);
-                const seconds = parseInt(parts[1], 10);
-                if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && seconds >= 0 && seconds < 60) {
-                    return minutes * 60 + seconds;
-                }
+            const parts = timeStr.split(':').map(part => parseInt(part, 10));
+            if (parts.some(isNaN)) return NaN;
+
+            let totalSeconds = 0;
+            if (parts.length === 3) { // Ч:ММ:СС
+                if (parts[0] < 0 || parts[1] < 0 || parts[1] >= 60 || parts[2] < 0 || parts[2] >= 60) return NaN;
+                totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else if (parts.length === 2) { // ММ:СС
+                if (parts[0] < 0 || parts[1] < 0 || parts[1] >= 60) return NaN;
+                totalSeconds = parts[0] * 60 + parts[1];
+            } else {
+                return NaN;
             }
-            return NaN; // Возвращаем NaN для некорректного формата
+            return totalSeconds;
         }
 
         /**
@@ -906,9 +908,15 @@
          * @returns {string} - Отформатированная строка времени.
          */
         function formatSecondsToMMSS(totalSeconds) {
-            const minutes = Math.floor(totalSeconds / 60);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
-            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
         }
 
         /**
