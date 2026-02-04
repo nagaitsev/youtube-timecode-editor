@@ -670,6 +670,11 @@
                 editBtn.textContent = 'Ред.';
                 editBtn.className = 'edit-timing-btn';
                 editBtn.onclick = () => {
+                    // Подхватываем текущее время плеера при редактировании
+                    if (player && player.getCurrentTime) {
+                        const currentSeconds = Math.max(0, Math.floor(player.getCurrentTime()));
+                        timeInput.value = formatSecondsToMMSS(currentSeconds);
+                    }
                     seekLink.style.display = 'none'; // Скрываем ссылку
                     timeInput.style.display = 'inline-block'; // Показываем поле ввода
                     timeInput.readOnly = false; // Разрешаем редактирование
