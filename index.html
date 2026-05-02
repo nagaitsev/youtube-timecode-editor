@@ -516,7 +516,18 @@
          * Загружает YouTube видео на страницу по введенному URL.
          */
         function loadVideo() {
-            const url = document.getElementById('youtubeUrl').value;
+            const rawInput = document.getElementById('youtubeUrl').value.trim();
+            const url = extractIframeSrc(rawInput) || rawInput;
+
+            if (isRegularVkVideoUrl(url)) {
+                alert(
+                    'Обнаружена обычная ссылка на VK видео.\n\n' +
+                    'Для VK пока нужен embed-код из кнопки «Поделиться» -> «Экспортировать» (iframe/video_ext.php).\n' +
+                    'Скопируйте код iframe целиком и вставьте его в это поле.'
+                );
+                return;
+            }
+
             const videoId = getYouTubeVideoId(url); // Извлекаем ID видео из URL
 
             if (addTimingButton) {
@@ -604,6 +615,28 @@
                 videoId = match[1];
             }
             return videoId;
+        }
+
+        /**
+         * Пытается извлечь значение src из iframe-кода, если пользователь вставил HTML.
+         * @param {string} input - Введенная пользователем строка.
+         * @returns {string} - URL из src или пустая строка.
+         */
+        function extractIframeSrc(input) {
+            const iframeSrcRegex = /<iframe[^>]+src=["']([^"']+)["']/i;
+            const match = input.match(iframeSrcRegex);
+            return match ? match[1] : '';
+        }
+
+        /**
+         * Определяет, что ссылка относится к обычной странице VK видео, а не к embed-url.
+         * @param {string} url - URL для проверки.
+         * @returns {boolean}
+         */
+        function isRegularVkVideoUrl(url) {
+            const vkVideoPageRegex = /https?:\/\/(?:www\.)?(?:vk\.com\/video|vkvideo\.ru\/video)[^?\s]*/i;
+            const vkEmbedRegex = /https?:\/\/(?:www\.)?vk\.com\/video_ext\.php\?/i;
+            return vkVideoPageRegex.test(url) && !vkEmbedRegex.test(url);
         }
 
         /**
