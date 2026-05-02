@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тайминги для YouTube видео</title>
+    <title>Тайминги для YouTube и VK видео</title>
     <style>
         /* Общие стили для всего документа */
         html, body {
@@ -448,10 +448,10 @@
         <!-- Видео-панель -->
         <div class="video-panel">
             <div class="container-inner">
-                <h1>Тайминги для YouTube видео</h1>
+                <h1>Тайминги для YouTube и VK видео</h1>
 
                 <div class="input-section">
-                    <input type="text" id="youtubeUrl" placeholder="Вставьте ссылку на YouTube видео здесь">
+                    <input type="text" id="youtubeUrl" placeholder="Вставьте ссылку на YouTube или VK embed-код">
                     <button onclick="loadVideo()">Загрузить видео</button>
                 </div>
 
@@ -492,6 +492,8 @@
                     страницу нужно открыть через локальный веб-сервер или на настоящем сервере.
                     Простое открытие файла в браузере может работать некорректно из-за ограничений безопасности браузеров.
                     <br>
+                    * Для VK используйте iframe/embed-код вида `https://vk.com/video_ext.php?...` из кнопки «Поделиться» -> «Экспортировать».
+                    <br>
                     * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ` или короткая `https://youtu.be/dQw4w9WgXcQ`).
                 </p>
             </div>
@@ -501,6 +503,13 @@
     <script>
         let player; // Объект YouTube плеера
         let currentVideoId = ''; // ID текущего загруженного видео
+        let currentPlayerType = 'none'; // none | youtube | vk
+        const vkPlayerState = {
+            origin: 'https://vk.com',
+            ready: false,
+            currentTime: 0,
+            duration: 0
+        };
         const timings = []; // Массив для хранения объектов таймингов
         let addTimingButton; // Ссылка на кнопку "Добавить тайминг"
         let videoContainer; // Ссылка на контейнер видео
@@ -513,13 +522,19 @@
         const GITHUB_PAGES_ORIGIN = window.location.origin;
 
         /**
-         * Загружает YouTube видео на страницу по введенному URL.
+         * Загружает видео (YouTube или VK) на страницу по введенному URL.
          */
         function loadVideo() {
             const rawInput = document.getElementById('youtubeUrl').value.trim();
-            const url = extractIframeSrc(rawInput) || rawInput;
+            const extractedUrl = extractIframeSrc(rawInput) || rawInput;
+            const normalizedUrl = normalizeInputUrl(extractedUrl);
 
-            if (isRegularVkVideoUrl(url)) {
+            if (!normalizedUrl) {
+                alert('Пожалуйста, вставьте ссылку на YouTube или VK (iframe/video_ext.php).');
+                return;
+            }
+
+            if (isRegularVkVideoUrl(normalizedUrl)) {
                 alert(
                     'Обнаружена обычная ссылка на VK видео.\n\n' +
                     'Для VK пока нужен embed-код из кнопки «Поделиться» -> «Экспортировать» (iframe/video_ext.php).\n' +
@@ -528,33 +543,93 @@
                 return;
             }
 
-            const videoId = getYouTubeVideoId(url); // Извлекаем ID видео из URL
-
             if (addTimingButton) {
-                addTimingButton.disabled = true; // Отключаем кнопку при загрузке нового видео
+                addTimingButton.disabled = true; // Блокируем кнопку, пока плеер не сообщит о готовности
             }
+
+            if (isVkEmbedUrl(normalizedUrl)) {
+                loadVkVideo(normalizedUrl);
+                return;
+            }
+
+            const videoId = getYouTubeVideoId(normalizedUrl); // Извлекаем ID видео из URL
 
             if (videoId) {
-                currentVideoId = videoId;
-                const iframe = document.getElementById('youtubePlayer');
-                // Обновляем src iframe для загрузки видео. enablejsapi=1 позволяет управлять плеером через JS.
-                // Добавляем параметр 'origin' для корректной работы YouTube API на GitHub Pages.
-                iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(GITHUB_PAGES_ORIGIN)}`;
-
-                // Инициализируем YouTube Iframe API, если он еще не загружен
-                if (!player) {
-                    const tag = document.createElement('script');
-                    tag.src = "https://www.youtube.com/iframe_api"; // URL для загрузки YouTube Iframe API
-                    const firstScriptTag = document.getElementsByTagName('script')[0];
-                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag); // Вставляем скрипт на страницу
-                } else {
-                    // Если плеер уже инициализирован, просто загружаем новое видео по ID
-                    // onPlayerReady не будет вызван снова, поэтому используем onPlayerStateChange
-                    player.loadVideoById(videoId);
-                }
+                loadYouTubeVideoById(videoId);
             } else {
-                alert('Пожалуйста, введите корректную ссылку на YouTube видео.');
+                alert('Пожалуйста, введите корректную ссылку на YouTube видео или VK embed (video_ext.php).');
             }
+        }
+
+        /**
+         * Нормализует пользовательский ввод в URL.
+         * @param {string} value
+         * @returns {string}
+         */
+        function normalizeInputUrl(value) {
+            if (!value) return '';
+            const trimmed = value.trim().replace(/&amp;/gi, '&');
+            if (/^(?:www\.)?(?:vk\.com|vkvideo\.ru|vk\.ru|youtube\.com|youtu\.be)\//i.test(trimmed)) {
+                return `https://${trimmed}`;
+            }
+            if (trimmed.startsWith('//')) {
+                return `${window.location.protocol}${trimmed}`;
+            }
+            return trimmed;
+        }
+
+        /**
+         * Загружает YouTube-видео по ID.
+         * @param {string} videoId
+         */
+        function loadYouTubeVideoById(videoId) {
+            currentVideoId = videoId;
+            currentPlayerType = 'youtube';
+            resetVkPlayerState();
+
+            const iframe = document.getElementById('youtubePlayer');
+            const youtubeSrc = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(GITHUB_PAGES_ORIGIN)}`;
+
+            // Если API уже инициализировано, переключаем видео без пересоздания iframe.
+            // Это надежнее при многократных загрузках.
+            if (player && typeof player.loadVideoById === 'function') {
+                try {
+                    player.loadVideoById(videoId);
+                    return;
+                } catch (error) {
+                    console.warn('Не удалось переключить YouTube видео через API, будет прямое обновление iframe:', error);
+                }
+            }
+
+            iframe.src = youtubeSrc;
+
+            // Инициализируем YouTube Iframe API, если он еще не загружен
+            if (!player) {
+                const tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                const firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            }
+        }
+
+        /**
+         * Загружает VK embed-плеер и включает js_api для postMessage-управления.
+         * @param {string} rawVkUrl
+         */
+        function loadVkVideo(rawVkUrl) {
+            currentPlayerType = 'vk';
+            currentVideoId = '';
+            resetVkPlayerState();
+
+            const iframe = document.getElementById('youtubePlayer');
+            const vkUrl = new URL(rawVkUrl);
+            vkUrl.searchParams.set('js_api', '1');
+            if (GITHUB_PAGES_ORIGIN && GITHUB_PAGES_ORIGIN !== 'null') {
+                vkUrl.searchParams.set('origin', GITHUB_PAGES_ORIGIN);
+            }
+
+            vkPlayerState.origin = vkUrl.origin;
+            iframe.src = vkUrl.toString();
         }
 
         /**
@@ -576,7 +651,7 @@
          */
         function onPlayerReady(event) {
             // Включаем кнопку "Добавить тайминг" после того, как плеер готов
-            if (addTimingButton) {
+            if (addTimingButton && currentPlayerType === 'youtube') {
                 addTimingButton.disabled = false;
             }
             // Можно что-то сделать, когда плеер готов, например, начать воспроизведение
@@ -588,6 +663,9 @@
          * @param {Object} event - Объект события плеера.
          */
         function onPlayerStateChange(event) {
+            if (currentPlayerType !== 'youtube') {
+                return;
+            }
             // Включаем кнопку, если видео воспроизводится, на паузе или буферизуется
             if (addTimingButton) {
                 if (event.data === YT.PlayerState.PLAYING ||
@@ -634,19 +712,141 @@
          * @returns {boolean}
          */
         function isRegularVkVideoUrl(url) {
-            const vkVideoPageRegex = /https?:\/\/(?:www\.)?(?:vk\.com\/video|vkvideo\.ru\/video)[^?\s]*/i;
-            const vkEmbedRegex = /https?:\/\/(?:www\.)?vk\.com\/video_ext\.php\?/i;
-            return vkVideoPageRegex.test(url) && !vkEmbedRegex.test(url);
+            try {
+                const parsedUrl = new URL(url);
+                const host = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
+                const path = parsedUrl.pathname.toLowerCase();
+                const isVkHost = host === 'vk.com' || host === 'vkvideo.ru' || host === 'vk.ru';
+                const isVideoPath = path.startsWith('/video');
+                const isEmbedPath = path === '/video_ext.php';
+                return isVkHost && isVideoPath && !isEmbedPath;
+            } catch {
+                return false;
+            }
+        }
+
+        /**
+         * Определяет, что ссылка относится к embed-формату VK (video_ext.php).
+         * @param {string} url - URL для проверки.
+         * @returns {boolean}
+         */
+        function isVkEmbedUrl(url) {
+            try {
+                const parsedUrl = new URL(url);
+                const host = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
+                const path = parsedUrl.pathname.toLowerCase();
+                const isVkHost = host === 'vk.com' || host === 'vkvideo.ru' || host === 'vk.ru';
+                return isVkHost && path === '/video_ext.php';
+            } catch {
+                return false;
+            }
+        }
+
+        /**
+         * Сбрасывает кэш состояния VK-плеера.
+         */
+        function resetVkPlayerState() {
+            vkPlayerState.ready = false;
+            vkPlayerState.currentTime = 0;
+            vkPlayerState.duration = 0;
+        }
+
+        /**
+         * Возвращает текущее время активного плеера (в секундах).
+         * @returns {number|null}
+         */
+        function getCurrentPlayerTime() {
+            if (currentPlayerType === 'youtube' && player && typeof player.getCurrentTime === 'function') {
+                return Math.max(0, Math.floor(player.getCurrentTime()));
+            }
+
+            if (currentPlayerType === 'vk' && vkPlayerState.ready) {
+                return Math.max(0, Math.floor(vkPlayerState.currentTime || 0));
+            }
+
+            return null;
+        }
+
+        /**
+         * Перематывает активный плеер на указанное время.
+         * @param {number} seconds
+         * @returns {boolean}
+         */
+        function seekActivePlayer(seconds) {
+            const safeSeconds = Math.max(0, Math.floor(seconds));
+
+            if (currentPlayerType === 'youtube' && player && typeof player.seekTo === 'function') {
+                player.seekTo(safeSeconds, true);
+                return true;
+            }
+
+            if (currentPlayerType === 'vk') {
+                return sendVkPlayerCommand('seek', { time: safeSeconds });
+            }
+
+            return false;
+        }
+
+        /**
+         * Отправляет команду в VK embed-плеер через postMessage.
+         * @param {string} method
+         * @param {Object} payload
+         * @returns {boolean}
+         */
+        function sendVkPlayerCommand(method, payload = {}) {
+            if (currentPlayerType !== 'vk') return false;
+
+            const iframe = document.getElementById('youtubePlayer');
+            if (!iframe || !iframe.contentWindow) return false;
+
+            iframe.contentWindow.postMessage({ method, ...payload }, vkPlayerState.origin || '*');
+            return true;
+        }
+
+        /**
+         * Обрабатывает события из VK iframe-плеера.
+         * @param {MessageEvent} event
+         */
+        function handleVkPlayerMessage(event) {
+            if (currentPlayerType !== 'vk') return;
+
+            const iframe = document.getElementById('youtubePlayer');
+            if (!iframe || event.source !== iframe.contentWindow) return;
+
+            let data = event.data;
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch {
+                    return;
+                }
+            }
+            if (!data || typeof data !== 'object' || !data.event) return;
+
+            if (event.origin !== vkPlayerState.origin) return;
+
+            if (typeof data.time === 'number' && Number.isFinite(data.time)) {
+                vkPlayerState.currentTime = data.time;
+            }
+            if (typeof data.duration === 'number' && Number.isFinite(data.duration)) {
+                vkPlayerState.duration = data.duration;
+            }
+
+            if (data.event === 'inited' || data.event === 'started' || data.event === 'resumed' || data.event === 'paused' || data.event === 'timeupdate') {
+                vkPlayerState.ready = true;
+                if (addTimingButton) {
+                    addTimingButton.disabled = false;
+                }
+            }
         }
 
         /**
          * Добавляет текущее время воспроизведения видео в список таймингов.
          */
         function addCurrentTime() {
-            // Проверяем, что плеер инициализирован и метод getCurrentTime доступен
-            // А также что кнопка не отключена (что означает, что плеер готов)
-            if (player && player.getCurrentTime && !addTimingButton.disabled) {
-                const currentTime = Math.floor(player.getCurrentTime()); // Получаем текущее время в секундах
+            // Получаем текущее время у активного плеера (YouTube или VK)
+            const currentTime = getCurrentPlayerTime();
+            if (currentTime !== null && !addTimingButton.disabled) {
                 const formattedTime = formatSecondsToMMSS(currentTime); // Используем новую функцию
 
                 const timingEntry = {
@@ -685,9 +885,7 @@
                 seekLink.className = 'timing-seek-link';
                 seekLink.onclick = (e) => {
                     e.preventDefault();
-                    if (player && player.seekTo) {
-                        player.seekTo(entry.time, true);
-                    }
+                    seekActivePlayer(entry.time);
                 };
 
                 // Поле ввода для редактирования времени
@@ -704,8 +902,8 @@
                 editBtn.className = 'edit-timing-btn';
                 editBtn.onclick = () => {
                     // Подхватываем текущее время плеера при редактировании
-                    if (player && player.getCurrentTime) {
-                        const currentSeconds = Math.max(0, Math.floor(player.getCurrentTime()));
+                    const currentSeconds = getCurrentPlayerTime();
+                    if (currentSeconds !== null) {
                         timeInput.value = formatSecondsToMMSS(currentSeconds);
                     }
                     seekLink.style.display = 'none'; // Скрываем ссылку
@@ -1080,6 +1278,9 @@
 
             // Инициализируем перетаскивание разделителя
             setupSplitterDragging();
+
+            // Слушаем события VK embed-плеера (js_api через postMessage)
+            window.addEventListener('message', handleVkPlayerMessage);
 
             // Также настраиваем размеры панелей при изменении размера окна или ориентации
             window.addEventListener('resize', setInitialPanelSizes);
