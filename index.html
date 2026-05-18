@@ -237,9 +237,17 @@
             padding-bottom: 10px;
             border-bottom: 1px dashed #ccc;
             gap: 10px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
         }
         .timing-item:last-child {
             border-bottom: none;
+        }
+        .timing-item.active-timing {
+            background-color: #fff3cd;
+            box-shadow: inset 4px 0 0 #ff9800;
+            border-radius: 6px;
+            padding-left: 6px;
+            padding-right: 6px;
         }
 
         /* Общие стили для кнопок внутри timing-item */
@@ -545,6 +553,7 @@
         let timingsPanel; // Ссылка на панель таймингов
         let splitter; // Ссылка на разделитель
         let appWrapper; // Ссылка на основной контейнер
+        let activeTimingPoller = null; // Таймер обновления активного тайминга
 
         // Автоматически определяет текущий домен для параметра 'origin' YouTube API
         const GITHUB_PAGES_ORIGIN = window.location.origin;
@@ -705,6 +714,7 @@
                     addTimingButton.disabled = true;
                 }
             }
+            updateActiveTimingHighlight();
         }
 
         /**
@@ -865,6 +875,51 @@
                 if (addTimingButton) {
                     addTimingButton.disabled = false;
                 }
+                updateActiveTimingHighlight();
+            }
+        }
+
+        /**
+         * Возвращает индекс тайминга, в промежутке которого находится текущее время плеера.
+         * @param {number} currentTime
+         * @returns {number}
+         */
+        function getActiveTimingIndex(currentTime) {
+            if (!Number.isFinite(currentTime) || timings.length === 0) {
+                return -1;
+            }
+
+            const safeTime = Math.max(0, Math.floor(currentTime));
+            for (let i = 0; i < timings.length; i++) {
+                const start = Number(timings[i].time);
+                if (!Number.isFinite(start)) continue;
+
+                const nextStart = i < timings.length - 1 ? Number(timings[i + 1].time) : Infinity;
+                if (safeTime >= start && safeTime < nextStart) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        /**
+         * Подсвечивает текущий активный тайминг в списке.
+         */
+        function updateActiveTimingHighlight() {
+            const listElement = document.getElementById('timingsList');
+            if (!listElement) return;
+
+            const timingItems = listElement.querySelectorAll('.timing-item');
+            timingItems.forEach(item => item.classList.remove('active-timing'));
+
+            if (timingItems.length === 0) return;
+
+            const currentTime = getCurrentPlayerTime();
+            if (currentTime === null) return;
+
+            const activeIndex = getActiveTimingIndex(currentTime);
+            if (activeIndex >= 0 && timingItems[activeIndex]) {
+                timingItems[activeIndex].classList.add('active-timing');
             }
         }
 
@@ -885,6 +940,7 @@
                 timings.push(timingEntry); // Добавляем тайминг в массив
                 renderTimings(); // Обновляем отображение списка таймингов
                 saveTimings(); // Сохраняем изменения в localStorage
+                updateActiveTimingHighlight();
             } else {
                 alert('Видео еще не готово. Пожалуйста, подождите, пока оно загрузится и начнет воспроизводиться.');
             }
@@ -1007,6 +1063,8 @@
                 div.appendChild(deleteBtn);
                 listElement.appendChild(div); // Добавляем div со всеми элементами в список
             });
+
+            updateActiveTimingHighlight();
         }
 
         /**
@@ -1316,6 +1374,11 @@
 
             // Также настраиваем размеры панелей при изменении размера окна или ориентации
             window.addEventListener('resize', setInitialPanelSizes);
+
+            if (activeTimingPoller) {
+                clearInterval(activeTimingPoller);
+            }
+            activeTimingPoller = setInterval(updateActiveTimingHighlight, 400);
         });
     </script>
 </body>
