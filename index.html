@@ -164,11 +164,32 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
-        .paste-section h3 {
-            margin-top: 0;
+        .import-details > summary {
+            list-style: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.05em;
             color: #007bff;
             text-align: center;
+            user-select: none;
+        }
+        .import-details > summary::-webkit-details-marker {
+            display: none;
+        }
+        .import-details > summary::before {
+            content: "\25B6";
+            margin-right: 8px;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        .import-details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+        .import-details[open] > summary {
             margin-bottom: 15px;
+        }
+        .import-details-body {
+            padding-top: 2px;
         }
         .paste-section textarea {
             width: calc(100% - 24px);
@@ -268,6 +289,8 @@
             border: none;
             margin-left: 5px;
             flex-shrink: 0;
+            min-width: 36px;
+            font-weight: bold;
         }
         .edit-timing-btn:hover {
             background-color: #e0a800;
@@ -300,6 +323,8 @@
             border: none;
             margin-left: 10px;
             flex-shrink: 0;
+            min-width: 36px;
+            font-weight: bold;
         }
         .delete-timing-btn:hover {
             background-color: #c82333;
@@ -473,11 +498,13 @@
         <!-- Панель таймингов -->
         <div class="timings-panel">
             <div class="container-inner">
-                <div class="paste-section">
-                    <h3>Вставить ранее скопированные тайминги</h3>
-                    <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 Моя заметка"></textarea>
-                    <button onclick="pasteTimings()">Вставить тайминги</button>
-                </div>
+                <details class="paste-section import-details">
+                    <summary>Импорт таймингов</summary>
+                    <div class="import-details-body">
+                        <textarea id="pasteTimingsTextarea" placeholder="Вставьте тайминги здесь. Каждый тайминг должен быть на новой строке, например: 01:23 Моя заметка"></textarea>
+                        <button onclick="pasteTimings()">Вставить тайминги</button>
+                    </div>
+                </details>
 
                 <h3>Ваши тайминги:</h3>
                 <div id="timingsList">
@@ -898,8 +925,10 @@
 
                 // Кнопка редактирования времени
                 const editBtn = document.createElement('button');
-                editBtn.textContent = 'Ред.';
+                editBtn.innerHTML = '&#9998;';
                 editBtn.className = 'edit-timing-btn';
+                editBtn.title = 'Редактировать тайминг';
+                editBtn.setAttribute('aria-label', 'Редактировать тайминг');
                 editBtn.onclick = () => {
                     // Подхватываем текущее время плеера при редактировании
                     const currentSeconds = getCurrentPlayerTime();
@@ -953,8 +982,10 @@
 
                 // Кнопка удаления
                 const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Удалить';
+                deleteBtn.innerHTML = '&times;';
                 deleteBtn.className = 'delete-timing-btn';
+                deleteBtn.title = 'Удалить тайминг';
+                deleteBtn.setAttribute('aria-label', 'Удалить тайминг');
                 deleteBtn.onclick = () => {
                     if (confirm('Вы уверены, что хотите удалить этот тайминг?')) {
                         // Находим индекс элемента для удаления
