@@ -236,6 +236,8 @@
             align-items: center;
             width: 100%;
             box-sizing: border-box;
+            position: relative;
+            z-index: 0;
             margin-bottom: 15px;
             padding-top: 8px;
             padding-bottom: 10px;
@@ -247,12 +249,17 @@
             border-bottom: none;
         }
         .timing-item.active-timing {
+            background-color: transparent;
+        }
+        .timing-item.active-timing::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: -15px;
+            left: calc(var(--timings-list-side-padding) * -1);
+            right: calc(var(--timings-list-side-padding) * -1);
             background-color: #ffe6a6;
-            width: calc(100% + (var(--timings-list-side-padding) * 2));
-            margin-left: calc(var(--timings-list-side-padding) * -1);
-            margin-right: 0;
-            padding-left: var(--timings-list-side-padding);
-            padding-right: var(--timings-list-side-padding);
+            z-index: -1;
         }
 
         /* Общие стили для кнопок внутри timing-item */
