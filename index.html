@@ -566,6 +566,7 @@
         let splitter; // Ссылка на разделитель
         let appWrapper; // Ссылка на основной контейнер
         let activeTimingPoller = null; // Таймер обновления активного тайминга
+        let pendingFocusTimingUid = null; // UID тайминга, на который нужно поставить фокус после рендера
 
         // Автоматически определяет текущий домен для параметра 'origin' YouTube API
         const GITHUB_PAGES_ORIGIN = window.location.origin;
@@ -818,6 +819,14 @@
         }
 
         /**
+         * Генерирует UID для тайминга.
+         * @returns {string}
+         */
+        function generateTimingUid() {
+            return `timing-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+        }
+
+        /**
          * Перематывает активный плеер на указанное время.
          * @param {number} seconds
          * @returns {boolean}
@@ -943,13 +952,16 @@
             const currentTime = getCurrentPlayerTime();
             if (currentTime !== null && !addTimingButton.disabled) {
                 const formattedTime = formatSecondsToMMSS(currentTime); // Используем новую функцию
+                const timingUid = generateTimingUid();
 
                 const timingEntry = {
+                    uid: timingUid,
                     time: currentTime, // Время в секундах
                     formatted: formattedTime, // Отформатированное время
                     text: '' // Инициализируем пустое поле для заметки
                 };
                 timings.push(timingEntry); // Добавляем тайминг в массив
+                pendingFocusTimingUid = timingUid;
                 renderTimings(); // Обновляем отображение списка таймингов
                 saveTimings(); // Сохраняем изменения в localStorage
                 updateActiveTimingHighlight();
@@ -970,9 +982,13 @@
             }
 
             listElement.innerHTML = ''; // Очищаем текущее содержимое списка
+            let focusTextareaAfterRender = null;
             timings.forEach((entry, index) => {
                 const div = document.createElement('div'); // Используем div для группировки ссылки и текстового поля
                 div.className = 'timing-item'; // Добавляем класс для стилизации
+                if (entry.uid) {
+                    div.dataset.timingUid = entry.uid;
+                }
 
                 // Ссылка для перехода по видео
                 const seekLink = document.createElement('a');
@@ -1048,6 +1064,9 @@
                     entry.text = e.target.value; // Обновляем текст заметки в массиве
                     saveTimings(); // Сохраняем изменения при каждом вводе
                 };
+                if (pendingFocusTimingUid && entry.uid === pendingFocusTimingUid) {
+                    focusTextareaAfterRender = textarea;
+                }
 
                 // Кнопка удаления
                 const deleteBtn = document.createElement('button');
@@ -1075,6 +1094,14 @@
                 div.appendChild(deleteBtn);
                 listElement.appendChild(div); // Добавляем div со всеми элементами в список
             });
+
+            if (focusTextareaAfterRender) {
+                focusTextareaAfterRender.focus();
+                const cursorPos = focusTextareaAfterRender.value.length;
+                focusTextareaAfterRender.setSelectionRange(cursorPos, cursorPos);
+                focusTextareaAfterRender.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                pendingFocusTimingUid = null;
+            }
 
             updateActiveTimingHighlight();
         }
