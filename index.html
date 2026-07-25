@@ -542,7 +542,9 @@
                     <br>
                     * Для VK используйте iframe/embed-код вида `https://vk.com/video_ext.php?...` из кнопки «Поделиться» -> «Экспортировать».
                     <br>
-                    * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ` или короткая `https://youtu.be/dQw4w9WgXcQ`).
+                    * Если видео не загружается, убедитесь, что ссылка правильная (например, `https://www.youtube.com/watch?v=dQw4w9WgXcQ`, `https://youtu.be/dQw4w9WgXcQ` или `https://youtube.com/live/bcYjeAsB1sI`).
+                    <br>
+                    * Нажмите Ctrl+Z, чтобы отменить последнее действие с таймингами.
                 </p>
             </div>
         </div>
@@ -559,6 +561,8 @@
             duration: 0
         };
         const timings = []; // Массив для хранения объектов таймингов
+        const timingHistory = []; // История состояний для отмены последнего действия
+        const MAX_UNDO_STEPS = 50;
         let addTimingButton; // Ссылка на кнопку "Добавить тайминг"
         let videoContainer; // Ссылка на контейнер видео
         let videoPanel; // Ссылка на панель видео
@@ -731,14 +735,15 @@
         }
 
         /**
-         * Извлекает 11-значный ID видео из различных форматов ссылок YouTube.
+         * Извлекает 11-значный ID видео из различных форматов ссылок YouTube,
+         * включая ссылки на трансляции вида /live/{videoId}.
          * @param {string} url - Полный URL YouTube видео.
          * @returns {string} - ID видео или пустая строка, если ID не найден.
          */
         function getYouTubeVideoId(url) {
             let videoId = '';
             // Регулярное выражение для извлечения ID из разных форматов YouTube ссылок
-            const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+            const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:live|v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
             const match = url.match(regExp);
             if (match && match[1]) {
                 videoId = match[1];
@@ -824,6 +829,57 @@
          */
         function generateTimingUid() {
             return `timing-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+        }
+
+        /**
+         * Сохраняет текущее состояние таймингов перед изменением.
+         */
+        function recordTimingHistory() {
+            timingHistory.push(timings.map(entry => ({ ...entry })));
+            if (timingHistory.length > MAX_UNDO_STEPS) {
+                timingHistory.shift();
+            }
+        }
+
+        /**
+         * Отменяет последнее изменение списка таймингов.
+         */
+        function undoLastTimingAction() {
+            if (timingHistory.length === 0) return;
+
+            const previousState = timingHistory.pop();
+            timings.length = 0;
+            previousState.forEach(entry => timings.push(entry));
+            pendingFocusTimingUid = null;
+            renderTimings();
+            saveTimings();
+        }
+
+        /**
+         * Проверяет, находится ли фокус в поле, где Ctrl+Z должен обрабатываться браузером.
+         * @param {Element|null} element
+         * @returns {boolean}
+         */
+        function isEditableElement(element) {
+            return Boolean(element && (
+                element.tagName === 'INPUT' ||
+                element.tagName === 'TEXTAREA' ||
+                element.isContentEditable
+            ));
+        }
+
+        /**
+         * Обрабатывает Ctrl+Z для отмены действий с таймингами.
+         * В полях ввода оставляет стандартную отмену текста.
+         * @param {KeyboardEvent} event
+         */
+        function handleUndoKeydown(event) {
+            if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
+            if (isEditableElement(document.activeElement)) return;
+            if (timingHistory.length === 0) return;
+
+            event.preventDefault();
+            undoLastTimingAction();
         }
 
         /**
@@ -960,6 +1016,7 @@
                     formatted: formattedTime, // Отформатированное время
                     text: '' // Инициализируем пустое поле для заметки
                 };
+                recordTimingHistory();
                 timings.push(timingEntry); // Добавляем тайминг в массив
                 pendingFocusTimingUid = timingUid;
                 renderTimings(); // Обновляем отображение списка таймингов
@@ -1032,6 +1089,9 @@
                     const parsedTime = parseTimeToSeconds(newTimeStr);
 
                     if (!isNaN(parsedTime) && parsedTime >= 0) {
+                        if (entry.time !== parsedTime) {
+                            recordTimingHistory();
+                        }
                         entry.time = parsedTime;
                         entry.formatted = formatSecondsToMMSS(parsedTime);
                         timings.sort((a, b) => a.time - b.time); // Пересортировываем после изменения времени
@@ -1060,9 +1120,17 @@
                 textarea.rows = 2;
                 textarea.placeholder = "Напишите заметку здесь...";
                 textarea.className = 'timing-note-textarea';
+                let noteHistoryRecorded = false;
                 textarea.oninput = (e) => {
+                    if (!noteHistoryRecorded) {
+                        recordTimingHistory();
+                        noteHistoryRecorded = true;
+                    }
                     entry.text = e.target.value; // Обновляем текст заметки в массиве
                     saveTimings(); // Сохраняем изменения при каждом вводе
+                };
+                textarea.onblur = () => {
+                    noteHistoryRecorded = false;
                 };
                 if (pendingFocusTimingUid && entry.uid === pendingFocusTimingUid) {
                     focusTextareaAfterRender = textarea;
@@ -1079,6 +1147,7 @@
                         // Находим индекс элемента для удаления
                         const indexToDelete = timings.indexOf(entry);
                         if (indexToDelete > -1) {
+                            recordTimingHistory();
                             timings.splice(indexToDelete, 1); // Удаляем из массива
                             renderTimings(); // Перерисовываем список
                             saveTimings(); // Сохраняем изменения
@@ -1140,6 +1209,9 @@
         function clearTimings() {
             // Используем confirm для подтверждения действия (в реальном приложении лучше использовать кастомное модальное окно)
             if (confirm('Вы уверены, что хотите очистить все тайминги и заметки?')) {
+                if (timings.length > 0) {
+                    recordTimingHistory();
+                }
                 timings.length = 0; // Очищаем массив таймингов
                 renderTimings(); // Обновляем отображение (показываем пустой список)
                 saveTimings(); // Сохраняем пустое состояние в localStorage
@@ -1232,6 +1304,7 @@
 
             if (newTimings.length > 0) {
                 // Добавляем новые тайминги к существующим
+                recordTimingHistory();
                 timings.push(...newTimings);
                 // Сортируем все тайминги по времени, чтобы они были в правильном порядке
                 timings.sort((a, b) => a.time - b.time);
@@ -1407,6 +1480,9 @@
 
             // Инициализируем перетаскивание разделителя
             setupSplitterDragging();
+
+            // Отменяем последнее изменение таймингов по Ctrl+Z, не перехватывая отмену текста в полях ввода
+            document.addEventListener('keydown', handleUndoKeydown);
 
             // Слушаем события VK embed-плеера (js_api через postMessage)
             window.addEventListener('message', handleVkPlayerMessage);
