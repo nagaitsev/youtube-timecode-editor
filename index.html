@@ -1018,6 +1018,7 @@
                 };
                 recordTimingHistory();
                 timings.push(timingEntry); // Добавляем тайминг в массив
+                timings.sort((a, b) => a.time - b.time); // Ставим новый тайминг на место по времени
                 pendingFocusTimingUid = timingUid;
                 renderTimings(); // Обновляем отображение списка таймингов
                 saveTimings(); // Сохраняем изменения в localStorage
